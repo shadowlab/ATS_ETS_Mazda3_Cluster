@@ -23,6 +23,9 @@
 #include "telemetry_parser.h"
 
 mcp2515_can CAN(CAN_CS_PIN);
+#if MS_CAN_ENABLED
+mcp2515_can MSCAN(MS_CAN_CS_PIN);
+#endif
 TelemetryParser parser;
 mazda3::ClusterState cluster;
 
@@ -40,6 +43,7 @@ unsigned long lastSlowMs = 0;
 // SLOW_PERIOD_MS. Useful for finding the IDs/bits that control lamps on your
 // particular cluster without reflashing.
 struct CustomFrame {
+  bool ms;  // true: body bus (MS-CAN), false: main bus (HS-CAN)
   uint16_t id;
   uint8_t len;
   uint8_t data[8];
@@ -51,6 +55,59 @@ uint8_t customCount = 0;
 // ---------------------------------------------------------------- Helpers
 void sendFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
   CAN.sendMsgBuf(id, 0, len, data);
+}
+
+void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
+#if MS_CAN_ENABLED
+  MSCAN.sendMsgBuf(id, 0, len, data);
+#else
+  (void)id;
+  (void)data;
+  (void)len;
+#endif
+}
+
+// ---------------------------------------------------------------- Scan
+// `#scan m` / `#scan h`: sends all-0xFF frames on every ID, SCAN_BLOCK IDs at
+// a time, SCAN_STEP_MS per block, printing each block as it starts. Watch the
+// cluster and note the block that lights a lamp, then narrow it down with
+// custom frames.
+const uint16_t SCAN_BLOCK = 16;
+const unsigned long SCAN_STEP_MS = 2000;
+bool scanning = false;
+bool scanMs = false;
+uint16_t scanBase = 0;
+unsigned long scanStepStartMs = 0;
+
+void printScanBlock() {
+  DEBUG_PORT.print(F("scan "));
+  DEBUG_PORT.print(scanMs ? F("MS 0x") : F("HS 0x"));
+  DEBUG_PORT.print(scanBase, HEX);
+  DEBUG_PORT.print(F("-0x"));
+  DEBUG_PORT.println(scanBase + SCAN_BLOCK - 1, HEX);
+}
+
+void sendScanFrames(unsigned long now) {
+  if (!scanning) return;
+  if (now - scanStepStartMs >= SCAN_STEP_MS) {
+    scanStepStartMs = now;
+    scanBase += SCAN_BLOCK;
+    if (scanBase > 0x7FF) {
+      scanning = false;
+      DEBUG_PORT.println(F("scan done"));
+      return;
+    }
+    printScanBlock();
+  }
+  static const uint8_t ff[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK; id++) {
+    if (scanMs) {
+      sendMsFrame(id, ff);
+    } else if (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO) {
+      // Leave the needle/temperature frames alone so the gauges stay sane.
+      sendFrame(id, ff);
+    }
+  }
 }
 
 void setIndicator(int pin, bool on) {
@@ -108,7 +165,7 @@ void applyIdle() {
 
 bool hasCustomFrame(uint16_t id) {
   for (uint8_t i = 0; i < customCount; i++) {
-    if (customFrames[i].id == id) return true;
+    if (!customFrames[i].ms && customFrames[i].id == id) return true;
   }
   return false;
 }
@@ -139,16 +196,25 @@ void sendClusterFrames(unsigned long now) {
     mazda3::buildBrakeLamps(cluster, buf);
     sendBuiltIn(mazda3::ID_BRAKE_LAMPS, buf);
     for (uint8_t i = 0; i < customCount; i++) {
-      sendFrame(customFrames[i].id, customFrames[i].data, customFrames[i].len);
+      const CustomFrame &f = customFrames[i];
+      if (f.ms) {
+        sendMsFrame(f.id, f.data, f.len);
+      } else {
+        sendFrame(f.id, f.data, f.len);
+      }
     }
+    sendScanFrames(now);
   }
 }
 
 // ------------------------------------------------------- Serial commands
 //   #420 5A 00 00 00 01 00 00 00   add/replace a custom frame (hex)
 //   #420                           remove custom frame 0x420
-//   #-                             remove all custom frames
+//   #m433 00 00 00 40 00 00 00 00  same, on the body bus (MS-CAN)
+//   #-                             remove all custom frames, stop a scan
 //   #?                             list custom frames
+//   #scan m / #scan h              scan every ID on MS-CAN / HS-CAN
+//   #scan                          stop a scan
 // A custom frame with a built-in ID (0x201/0x212/0x420/0x433/0x4B0) replaces
 // that built-in frame until it is removed.
 
@@ -169,7 +235,7 @@ long nextHex(const char *&p) {
 }
 
 void printFrame(const CustomFrame &f) {
-  DEBUG_PORT.print(F("  0x"));
+  DEBUG_PORT.print(f.ms ? F("  MS 0x") : F("  0x"));
   DEBUG_PORT.print(f.id, HEX);
   for (uint8_t i = 0; i < f.len; i++) {
     DEBUG_PORT.print(' ');
@@ -182,7 +248,29 @@ void printFrame(const CustomFrame &f) {
 void handleCommand(const char *cmd) {
   if (cmd[0] == '-') {
     customCount = 0;
+    scanning = false;
     DEBUG_PORT.println(F("custom frames cleared"));
+    return;
+  }
+  if (strncmp(cmd, "scan", 4) == 0) {
+    const char *arg = cmd + 4;
+    while (*arg == ' ') arg++;
+    if (*arg == 'm' || *arg == 'M' || *arg == 'h' || *arg == 'H') {
+      scanMs = (*arg == 'm' || *arg == 'M');
+#if !MS_CAN_ENABLED
+      if (scanMs) {
+        DEBUG_PORT.println(F("MS-CAN not enabled - set MS_CAN_ENABLED 1 in config.h"));
+        return;
+      }
+#endif
+      scanning = true;
+      scanBase = 0;
+      scanStepStartMs = millis();
+      printScanBlock();
+    } else {
+      scanning = false;
+      DEBUG_PORT.println(F("scan stopped"));
+    }
     return;
   }
   if (cmd[0] == '?') {
@@ -193,6 +281,15 @@ void handleCommand(const char *cmd) {
   }
 
   const char *p = cmd;
+  bool ms = false;
+  if (*p == 'm' || *p == 'M') {
+#if !MS_CAN_ENABLED
+    DEBUG_PORT.println(F("MS-CAN not enabled - set MS_CAN_ENABLED 1 in config.h"));
+    return;
+#endif
+    ms = true;
+    p++;
+  }
   long id = nextHex(p);
   if (id < 0 || id > 0x7FF) {
     DEBUG_PORT.println(F("bad command - expected #<id> [bytes...]"));
@@ -200,6 +297,7 @@ void handleCommand(const char *cmd) {
   }
 
   CustomFrame f;
+  f.ms = ms;
   f.id = (uint16_t)id;
   f.len = 0;
   long b;
@@ -207,7 +305,7 @@ void handleCommand(const char *cmd) {
 
   int slot = -1;
   for (uint8_t i = 0; i < customCount; i++) {
-    if (customFrames[i].id == f.id) slot = i;
+    if (customFrames[i].id == f.id && customFrames[i].ms == f.ms) slot = i;
   }
 
   if (f.len == 0) {
@@ -285,6 +383,15 @@ void setup() {
     delay(500);
   }
   DEBUG_PORT.println(F("CAN ready - ATS Mazda 3 cluster bridge"));
+
+#if MS_CAN_ENABLED
+  // Don't hang here if the module is missing: the gauges still work without it.
+  if (MSCAN.begin(MS_CAN_SPEED, MS_CAN_CLOCK) == CAN_OK) {
+    DEBUG_PORT.println(F("MS-CAN ready"));
+  } else {
+    DEBUG_PORT.println(F("MS-CAN init failed - check module wiring, CS pin and crystal"));
+  }
+#endif
 
 #if SWEEP_ON_BOOT
   bootSweep();

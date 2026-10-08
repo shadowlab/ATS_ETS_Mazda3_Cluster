@@ -41,6 +41,21 @@
 // The 2004-2009 (BK) Mazda 3 cluster sits on the 500 kbit/s high-speed bus.
 #define CAN_SPEED CAN_500KBPS
 
+// ------------------------------------------ Optional second CAN module (MS-CAN)
+// The cluster also sits on the 125 kbit/s body bus (MS-CAN, cluster pins 1M/1O,
+// plug positions 7/8). The turn signal and high beam lamps are most likely
+// driven from there. To reach it, add a second MCP2515 module (the common blue
+// board with a TJA1050 transceiver): VCC 5V, GND, SCK D52, SI D51, SO D50, and
+// CS on the pin below. Its CAN-H/CAN-L go to positions 7/8.
+// With it fitted, `#m...` serial commands send custom frames on this bus and
+// `#scan m` searches it (see README).
+#define MS_CAN_ENABLED 0
+#define MS_CAN_CS_PIN  53
+// Most blue MCP2515 modules have an 8 MHz crystal (the can on the board reads
+// "8.000"). Use MCP_16MHz if yours reads 16.000.
+#define MS_CAN_CLOCK   MCP_8MHz
+#define MS_CAN_SPEED   CAN_125KBPS
+
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
 #define SWEEP_MAX_RPM 8000

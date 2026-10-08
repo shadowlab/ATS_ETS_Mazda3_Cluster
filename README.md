@@ -156,10 +156,45 @@ HS-CAN L. Don't put a transistor or 12 V on `1K`, because it will take down the
 CAN bus.
 
 The cluster gets those lamp states over CAN, most likely the MS-CAN body bus
-on `1M`/`1O`. This firmware only drives HS-CAN, so the `L`, `Y` and `H` fields
-do nothing until the right frames are found. Try candidate frames on HS-CAN
-with the `#` command first. If they turn out to be MS-CAN only, that needs a
-second MCP2515 module at 125 kbit/s.
+on `1M`/`1O` (plug positions 7/8). The `L`, `Y` and `H` fields do nothing until
+the right frames are found. On a bench-tested 2005 cluster, nothing in `0x433`
+on HS-CAN lit them, including the high beam bit (byte 3, `0x40`) that community
+RX-8/Mazda decodes list for MS-CAN.
+
+#### Reaching the body bus (MS-CAN)
+
+Add a second MCP2515 module, such as the common blue board with a TJA1050
+transceiver:
+
+| Module pin | Mega pin |
+|---|---|
+| VCC | 5V |
+| GND | GND |
+| SCK | D52 |
+| SI | D51 |
+| SO | D50 |
+| CS | D53 (`MS_CAN_CS_PIN`) |
+| INT | not needed |
+| CAN-H / CAN-L | cluster positions 7 (`1M`) / 8 (`1O`) |
+
+Then set `MS_CAN_ENABLED 1` in `config.h`. Check the crystal on the module: most
+read `8.000` (`MS_CAN_CLOCK MCP_8MHz`), and some read `16.000` (`MCP_16MHz`).
+At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
+the module isn't answering. The gauges keep working either way. Fit the
+module's 120 Ω termination jumper if it has one, since the body bus has no other
+nodes on the bench.
+
+#### Finding the lamp frames
+
+1. Type `#scan m` in the Serial Monitor (or `#scan h` to search the main bus).
+   The board sends all-`0xFF` frames on 16 IDs at a time, two seconds per block,
+   and prints each block, such as `scan MS 0x430-0x43F`. It takes about four
+   minutes to cover every ID.
+2. Note the block that lights a turn arrow or the high beam, then type `#scan`
+   to stop.
+3. Narrow it down with custom frames, for example `#m433 FF FF FF FF FF FF FF FF`
+   for one ID, then one byte at a time, then one bit.
+4. Add the confirmed ID, byte and bit to `mazda3_can.h`.
 
 The GPIO lamp outputs are still in the firmware, off by default
 (`PIN_LEFT_TURN`, `PIN_RIGHT_TURN`, `PIN_HIGH_BEAM` are `-1` in `config.h`), for
@@ -335,10 +370,15 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 |---|---|
 | `#420 82 40 00 00 01 00 00 00` | Send this frame every 100 ms (hex). If the ID is a built-in one, the built-in frame stops until you remove the custom one. |
 | `#420` | Stop sending custom frame `0x420` |
-| `#-` | Remove all custom frames |
+| `#m433 00 00 00 40 00 00 00 00` | The same, on the body bus (MS-CAN). Needs the second module (`MS_CAN_ENABLED 1`). |
+| `#-` | Remove all custom frames and stop a scan |
 | `#?` | List custom frames |
+| `#scan m` / `#scan h` | Scan every ID on MS-CAN / HS-CAN with all-`0xFF` frames, 16 IDs every 2 s (see [Finding the lamp frames](#finding-the-lamp-frames)) |
+| `#scan` | Stop a scan |
 
-Up to 8 custom frames can be active. They're lost on reset. Once you've found a
+Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
+If nothing comes back, check that the Serial Monitor's line ending is set to
+**Newline**. Up to 8 custom frames can be active. They're lost on reset. Once you've found a
 frame that works, add it to `mazda3_can.h` permanently.
 
 ## Known limitations
