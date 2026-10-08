@@ -51,16 +51,27 @@ two connectors on the back: a 16-pin one (pins `1A`–`1P`) and a 24-pin one
 you cut the plugs from a donor car. Check each pin with a multimeter on your
 own cluster before you power it, because other markets and years may differ.
 
+On the 16-pin plug, the "Position" column counts with the plug held as below,
+looking at the wire side with the latch up: the top row is 1–8 from right to
+left, and the bottom row is 9–16 from right to left. Factory letters run
+`1A`, `1C`, … `1O` along the top and `1B`, `1D`, … `1P` along the bottom, and
+the wire colours match a 2005 harness plug in this orientation.
+
+```
+ top row:     8   7   6   5   4   3   2   1      (1O 1M 1K 1I 1G 1E 1C 1A)
+ bottom row: 16  15  14  13  12  11  10   9      (1P 1N 1L 1J 1H 1F 1D 1B)
+```
+
 **Bench minimum** (this is all the cluster needs to wake up and move needles):
 
-| Cluster pin | Wire | Signal | Connect to |
-|---|---|---|---|
-| `1C` | O/B | B+ (constant 12 V, ROOM fuse in the car) | 12 V supply + |
-| `1G` | G/R | IG1 (ignition 12 V, METER 10 A fuse in the car) | 12 V supply + (the cluster stays dark without it) |
-| `1E` | B/O | Ground | 12 V supply − **and** Arduino GND |
-| `1F` | B/O | Ground | 12 V supply − **and** Arduino GND |
-| `1I` | GY/R | HS-CAN H (500 kbit/s) | Shield CAN-H |
-| `1K` | L/R | HS-CAN L (500 kbit/s) | Shield CAN-L |
+| Cluster pin | Position | Wire | Signal | Connect to |
+|---|---|---|---|---|
+| `1C` | 2 | O/B | B+ (constant 12 V, ROOM fuse in the car) | 12 V supply + |
+| `1G` | 4 | G/R | IG1 (ignition 12 V, METER 10 A fuse in the car) | 12 V supply + (the cluster stays dark without it) |
+| `1E` | 3 | B/O | Ground | 12 V supply − **and** Arduino GND |
+| `1F` | 11 | B/O | Ground | 12 V supply − **and** Arduino GND |
+| `1I` | 5 | GY/R | HS-CAN H (500 kbit/s) | Shield CAN-H |
+| `1K` | 6 | L/R | HS-CAN L (500 kbit/s) | Shield CAN-L |
 
 Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
 the car has a 10 A and a 15 A fuse on these lines.
@@ -69,15 +80,14 @@ the car has a 10 A and a 15 A fuse on these lines.
 
 | Cluster pin | Wire | Signal | Notes |
 |---|---|---|---|
-| `1L` | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
-| `1M` | GY/V | MS-CAN H (body bus, 125 kbit/s) | Not used by this firmware. See [Turn signals and high beam](#turn-signals-and-high-beam) |
-| `1O` | L/W | MS-CAN L (body bus, 125 kbit/s) | Not used by this firmware |
-| `1B` | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
+| `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
+| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | Not used by this firmware. See [Turn signals and high beam](#turn-signals-and-high-beam) |
+| `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
 | `2U`, `2W` | W/R, BR/R | Fuel gauge sender (variable resistor between the two) | Not needed: the gauge is driven over CAN `0x433` |
 | `2M` | R/Y | Brake switch 2 (brake pedal) | Leave open |
 | `2C` | R/B | Key reminder switch | Leave open |
 | `2Q`, `2S` | W/G, GY/O | Immobilizer coil antenna | Leave open. The security lamp may blink |
-| `1P` | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
+| `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
 | `2O` | W | Car navigation unit (only on cars with one) | Leave open |
 
 All other pins are vacant. In the car, the brake fluid-level and parking brake
