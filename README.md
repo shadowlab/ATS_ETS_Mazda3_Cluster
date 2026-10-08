@@ -5,9 +5,6 @@ Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster
 American Truck      SimTools          Arduino Mega 2560          2005 Mazda 3
 Simulator   ──────► or SimHub   ────► + Seeed CAN-BUS  ────────► instrument
 (telemetry)         (USB serial)      Shield (MCP2515) CAN 500k  cluster
-                                         │
-                                         └── GPIO ─► transistors ─► hard-wired lamps
-                                                                    (turn signals, high beam)
 ```
 
 SimTools or SimHub reads ATS telemetry and streams it as text over USB serial. The Mega
@@ -32,9 +29,9 @@ gauge, fuel gauge and warning lamps follow the game.
 - Arduino Mega 2560 (ATmega2560)
 - Seeed Studio CAN-BUS Shield (MCP2515 + MCP2551, 16 MHz crystal)
 - 12 V DC supply, at least 1 A (a bench supply or a 12 V wall adapter)
-- Optional, for the hard-wired lamps: 3× NPN transistors (2N2222/BC547),
-  1 kΩ base resistors, and a PNP/P-channel MOSFET or relay for the high beam's
-  +12 V side
+- A 2–3 A inline fuse for the 12 V feed
+- Optional: a 120 Ω resistor, if your cluster turns out not to terminate the
+  CAN bus itself (see [Termination](#wiring-the-cluster))
 
 ### Shield on a Mega
 
@@ -47,51 +44,88 @@ gauge, fuel gauge and warning lamps follow the game.
 
 ### Wiring the cluster
 
-The cluster needs four groups of connections. Find the pin numbers in a BK
-Mazda 3 wiring diagram for the instrument cluster connector, and check them
-with a multimeter on your cluster. Pinouts vary between markets and model
-years, so this README doesn't list pin numbers.
+The pin numbers below come from the factory wiring diagram for the 2005
+Mazda 3 2.3L instrument cluster (diagrams 0922-1a to 0922-1d). The cluster has
+two connectors on the back: a 16-pin one (pins `1A`–`1P`) and a 24-pin one
+(pins `2A`–`2X`). Wire colours are the car harness side, so they only help if
+you cut the plugs from a donor car. Check each pin with a multimeter on your
+own cluster before you power it, because other markets and years may differ.
 
-| Cluster signal | Connect to |
-|---|---|
-| B+ (battery, constant 12 V) | 12 V supply + |
-| IG1 (ignition 12 V) | 12 V supply + (the cluster stays dark without it) |
-| Ground(s) | 12 V supply − **and** Arduino GND (common ground is required) |
-| CAN-H (HS-CAN) | Shield CAN-H |
-| CAN-L (HS-CAN) | Shield CAN-L |
-| Illumination (optional) | 12 V through a switch, if you want the backlight on |
+**Bench minimum** (this is all the cluster needs to wake up and move needles):
+
+| Cluster pin | Wire | Signal | Connect to |
+|---|---|---|---|
+| `1C` | O/B | B+ (constant 12 V, ROOM fuse in the car) | 12 V supply + |
+| `1G` | G/R | IG1 (ignition 12 V, METER 10 A fuse in the car) | 12 V supply + (the cluster stays dark without it) |
+| `1E` | B/O | Ground | 12 V supply − **and** Arduino GND |
+| `1F` | B/O | Ground | 12 V supply − **and** Arduino GND |
+| `1I` | GY/R | HS-CAN H (500 kbit/s) | Shield CAN-H |
+| `1K` | L/R | HS-CAN L (500 kbit/s) | Shield CAN-L |
+
+Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
+the car has a 10 A and a 15 A fuse on these lines.
+
+**Optional pins:**
+
+| Cluster pin | Wire | Signal | Notes |
+|---|---|---|---|
+| `1L` | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
+| `1M` | GY/V | MS-CAN H (body bus, 125 kbit/s) | Not used by this firmware. See [Turn signals and high beam](#turn-signals-and-high-beam) |
+| `1O` | L/W | MS-CAN L (body bus, 125 kbit/s) | Not used by this firmware |
+| `1B` | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
+| `2U`, `2W` | W/R, BR/R | Fuel gauge sender (variable resistor between the two) | Not needed: the gauge is driven over CAN `0x433` |
+| `2M` | R/Y | Brake switch 2 (brake pedal) | Leave open |
+| `2C` | R/B | Key reminder switch | Leave open |
+| `2Q`, `2S` | W/G, GY/O | Immobilizer coil antenna | Leave open. The security lamp may blink |
+| `1P` | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
+| `2O` | W | Car navigation unit (only on cars with one) | Leave open |
+
+All other pins are vacant. In the car, the brake fluid-level and parking brake
+switches go to the junction box, not the cluster, which is why the parking
+brake lamp comes over CAN (`0x212`).
 
 **Termination:** a CAN bus needs 120 Ω across H and L at each end. The
-Seeed shield has one fitted (on some revisions it's a solder jumper or
-switch). A bare cluster usually doesn't, so add a 120 Ω resistor across CAN-H
-and CAN-L at the cluster end. With both fitted and the power off, you should
-read about 60 Ω between H and L.
+diagram draws a resistor across HS-CAN H/L (and across MS-CAN H/L) inside the
+cluster, so the cluster probably terminates its end already. With everything
+unpowered, measure `1I` to `1K` on the bare cluster:
+
+- About **120 Ω**: the cluster is terminated. Don't add a resistor.
+- **Open circuit**: add a 120 Ω resistor across `1I` and `1K` at the cluster end.
+
+The Seeed shield has the other 120 Ω fitted (on some revisions it's a solder
+jumper or switch). With both ends terminated and the power off, you should
+read about 60 Ω between the shield's CAN-H and CAN-L.
 
 Twist the CAN-H/CAN-L pair, and keep it away from the 12 V supply leads.
 
-### Hard-wired lamps
+### Turn signals and high beam
 
-On the 2005 Mazda 3, the turn signals and high beam are not on CAN. They're
-separate wires into the cluster connector. The parking brake lamp *is* on CAN
-(`0x212`), so it needs no wiring. The firmware drives these pins (change them
-in `config.h`):
+On this cluster the turn signal and high beam lamps are **not** hard-wired
+inputs. The diagram shows them driven by the cluster's own microcomputer,
+like the warning lamps, and the pins earlier versions of this README gave for
+them are wrong: `1N` and `1P` are vacant (or the washer sensor), and `1K` is
+HS-CAN L. Don't put a transistor or 12 V on `1K`, because it will take down the
+CAN bus.
 
-| Lamp | Arduino pin | Cluster pin | Lights when | Driver |
-|---|---|---|---|---|
-| Left turn | D3 | 1N | pulled to ground | NPN low-side |
-| Right turn | D5 | 1P | pulled to ground | NPN low-side |
-| High beam | D6 | 1K | fed +12 V | high-side switch |
+The cluster gets those lamp states over CAN, most likely the MS-CAN body bus
+on `1M`/`1O`. This firmware only drives HS-CAN, so the `L`, `Y` and `H` fields
+do nothing until the right frames are found. Try candidate frames on HS-CAN
+with the `#` command first. If they turn out to be MS-CAN only, that needs a
+second MCP2515 module at 125 kbit/s.
 
-Never connect an Arduino pin straight to the cluster, because these inputs work
-at 12 V. Use a transistor or relay per lamp:
+The GPIO lamp outputs are still in the firmware, off by default
+(`PIN_LEFT_TURN`, `PIN_RIGHT_TURN`, `PIN_HIGH_BEAM` are `-1` in `config.h`), for
+clusters that do turn out to have hard-wired lamp inputs. If you use them,
+never connect an Arduino pin straight to the cluster, because these inputs
+work at 12 V. Use a transistor or relay per lamp:
 
-- **Low-side (turn signals):** NPN transistor (2N2222/BC547). Arduino pin →
-  1 kΩ → base, emitter → ground, collector → cluster pin.
-- **High-side (high beam):** a PNP or P-channel MOSFET driven by an NPN, or a
-  relay/optocoupler module, switching +12 V to the cluster pin.
+- **Low-side (input pulled to ground):** NPN transistor (2N2222/BC547).
+  Arduino pin → 1 kΩ → base, emitter → ground, collector → cluster pin.
+- **High-side (input fed +12 V):** a PNP or P-channel MOSFET driven by an
+  NPN, or a relay/optocoupler module, switching +12 V to the cluster pin.
 
-Confirm each pin with a fused jumper wire before building the driver. If your
-driver turns the lamp on when the pin is LOW, set `INDICATOR_ACTIVE_LOW 1`.
+If your driver turns the lamp on when the pin is LOW, set
+`INDICATOR_ACTIVE_LOW 1`.
 
 ## Firmware setup
 
@@ -194,9 +228,9 @@ Each field is an upper-case letter followed by a number, for example
 | `E` | Check-engine lamp | 0/1 |
 | `B` | Battery/charge lamp | 0/1 |
 | `O` | Oil pressure lamp | 0/1 |
-| `L` | Left turn signal | 0/1 (GPIO) |
-| `Y` | Right turn signal | 0/1 (GPIO) |
-| `H` | High beam | 0/1 (GPIO) |
+| `L` | Left turn signal | 0/1 (GPIO, off by default; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
+| `Y` | Right turn signal | 0/1 (GPIO, off by default) |
+| `H` | High beam | 0/1 (GPIO, off by default) |
 | `P` | Parking brake | 0/1 |
 
 ### Scaling
@@ -272,8 +306,8 @@ frame that works, add it to `mazda3_can.h` permanently.
 | Symptom | Check |
 |---|---|
 | `CAN init failed` repeats in the Serial Monitor | Wrong CS pin (`CAN_CS_PIN` 9 vs 10), a v1.x shield without the Mega SPI jumpers, or an 8 MHz module (set `CAN_CLOCK MCP_8MHz`) |
-| Cluster dark | No 12 V on IG1/B+, or no ground |
-| Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped, missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the Arduino and the 12 V supply |
+| Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
+| Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the Arduino and the 12 V supply |
 | Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
 | Speed reads about 60% low | Telemetry is in mph and needs `SPEED_SCALE 1.609344` |
 | Tach barely moves | Raise `RPM_DISPLAY_MULTIPLIER` |
