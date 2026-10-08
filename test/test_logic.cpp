@@ -32,11 +32,11 @@ static void testRpmSpeedFrame() {
   s.throttlePct = 50;
   uint8_t b[8];
   mazda3::buildRpmSpeed(s, b);
-  // 3000 rpm 1:1 = 0x0BB8
-  CHECK(b[0] == 0x0B && b[1] == 0xB8);
+  // 3000 rpm * 0.96 = 2880 = 0x0B40
+  CHECK(b[0] == 0x0B && b[1] == 0x40);
   CHECK(b[2] == 0xFF && b[3] == 0xFF);
-  // 100 km/h * 177.6 = 17760 = 0x4560
-  CHECK(b[4] == 0x45 && b[5] == 0x60);
+  // 100 km/h * 100 = 10000 = 0x2710
+  CHECK(b[4] == 0x27 && b[5] == 0x10);
   CHECK(b[6] == 100);
   CHECK(b[7] == 0xFF);
 }
@@ -53,7 +53,7 @@ static void testStoppedAndClamping() {
   CHECK(b[6] == 255);
 
   s.rpm = 100000;     // overflows 16 bits -> clamps
-  s.speedKmh = 1000;  // 177600 overflows -> clamps
+  s.speedKmh = 1000;  // 100000 overflows -> clamps
   mazda3::buildRpmSpeed(s, b);
   CHECK(b[0] == 0xFF && b[1] == 0xFF);
   CHECK(b[4] == 0xFF && b[5] == 0xFF);

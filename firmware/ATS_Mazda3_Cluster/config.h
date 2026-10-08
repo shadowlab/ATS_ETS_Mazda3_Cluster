@@ -43,22 +43,22 @@
 
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
-#define SWEEP_MAX_RPM 7000
-#define SWEEP_MAX_KMH 220
+#define SWEEP_MAX_RPM 8000
+#define SWEEP_MAX_KMH 225  // 140 mph, the top of the speedo
 #define SWEEP_DURATION_MS 1500  // each direction
 
 // ---------------------------------------------------------- Input scaling
 // physical = raw * SCALE + OFFSET, applied to every value SimTools sends.
 //
-// Defaults assume SimTools sends real units (RPM, km/h, deg C, %). If your
+// Defaults assume SimTools sends real units (RPM, mph, deg C, %). If your
 // output is set to a bit range instead (e.g. 8-bit = 0..255), rescale here.
 // Example: 8-bit RPM output covering 0..3000 rpm -> RPM_SCALE (3000.0 / 255.0)
 //
-// American Truck Simulator reports speed in whatever SimTools hands over; if
-// it arrives in mph use SPEED_SCALE 1.609344, if in m/s use 3.6.
+// Speed is expected in mph: SPEED_SCALE converts it to the km/h the cluster
+// takes on CAN. If your speed arrives in km/h use 1.0, if in m/s use 3.6.
 #define RPM_SCALE       1.0f
 #define RPM_OFFSET      0.0f
-#define SPEED_SCALE     1.0f
+#define SPEED_SCALE     1.609344f
 #define SPEED_OFFSET    0.0f
 #define COOLANT_SCALE   1.0f
 #define COOLANT_OFFSET  0.0f
@@ -69,29 +69,31 @@
 #define FUEL_SCALE      1.0f
 #define FUEL_OFFSET     0.0f
 
-// Trucks idle around 600 rpm and redline near 2500 - on a 7000 rpm car
-// tachometer that barely moves the needle. Multiply RPM before it goes to the
-// cluster so a truck's range fills the dial (2.5 maps 2500 truck rpm -> 6250).
-// Set to 1.0 for a true reading.
-#define RPM_DISPLAY_MULTIPLIER 2.5f
+// Multiplies RPM before it goes to the cluster. 1.0 shows the true reading.
+// Trucks redline near 2500 rpm, which barely moves the cluster's 8000 rpm tach;
+// 3.0 stretches a truck's range across the dial (2500 truck rpm -> 7500).
+#define RPM_DISPLAY_MULTIPLIER 1.0f
 
-// --------------------------------------------- Hard-wired indicator outputs
-// On the 2005 Mazda 3 the turn signals and high beam are wired directly into
-// the cluster connector rather than sent over CAN:
-//   left turn  - ground pin 1N        right turn - ground pin 1P
-//   high beam  - +12 V to pin 1K
-// Each pin below drives a transistor/relay that switches the matching cluster
-// input (see README). Set a pin to -1 to disable it.
+// --------------------------------------------- Optional GPIO indicator outputs
+// The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the
+// turn signal and high beam lamps driven by the cluster's own microcomputer, so
+// they arrive over CAN (probably the MS-CAN body bus on pins 1M/1O), not as
+// hard-wired inputs. Pins 1N and 1P are vacant, and 1K is HS-CAN L - never
+// drive 1K from a transistor or relay.
+//
+// These outputs are kept, off by default, for clusters that do turn out to have
+// hard-wired lamp inputs. Each pin drives a transistor/relay that switches the
+// cluster input (see README). Set a pin to -1 to disable it.
 //
 // The parking brake lamp is sent over CAN (0x212). PIN_PARK_BRAKE is only for
-// clusters where it turns out to be hard-wired instead; it's off by default.
+// clusters where it turns out to be hard-wired instead.
 //
 // Avoid D2 (shield interrupt), D4 (shield SD card CS), D9/D10 (CAN CS),
 // D50-D53 (Mega SPI) and D0/D1 (USB serial to SimTools). The Mega has plenty
-// of other free pins (D22-D49) if you'd rather move these off the shield area.
-#define PIN_LEFT_TURN   3
-#define PIN_RIGHT_TURN  5
-#define PIN_HIGH_BEAM   6
+// of other free pins (D22-D49).
+#define PIN_LEFT_TURN   -1
+#define PIN_RIGHT_TURN  -1
+#define PIN_HIGH_BEAM   -1
 #define PIN_PARK_BRAKE  -1
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.

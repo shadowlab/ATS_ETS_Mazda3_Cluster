@@ -12,7 +12,7 @@
 //    R rpm   S speed   T coolant   A throttle   F fuel %
 //    E check-engine   B charge   O oil pressure     (0/1 warning lamps)
 //    P parking brake                                (0/1, CAN)
-//    L left turn   Y right turn   H high beam      (0/1, hard-wired GPIO)
+//    L left turn   Y right turn   H high beam      (0/1, optional GPIO, off by default)
 // =============================================================================
 
 #include <SPI.h>
