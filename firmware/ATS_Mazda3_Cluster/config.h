@@ -43,7 +43,7 @@
 
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
-#define SWEEP_MAX_RPM 7000
+#define SWEEP_MAX_RPM 8000
 #define SWEEP_MAX_KMH 220
 #define SWEEP_DURATION_MS 1500  // each direction
 
@@ -70,8 +70,8 @@
 #define FUEL_OFFSET     0.0f
 
 // Multiplies RPM before it goes to the cluster. 1.0 shows the true reading.
-// Trucks redline near 2500 rpm, which barely moves a 7000 rpm car tach; 2.5
-// stretches a truck's range across the dial (2500 truck rpm -> 6250).
+// Trucks redline near 2500 rpm, which barely moves the cluster's 8000 rpm tach;
+// 3.0 stretches a truck's range across the dial (2500 truck rpm -> 7500).
 #define RPM_DISPLAY_MULTIPLIER 1.0f
 
 // --------------------------------------------- Optional GPIO indicator outputs

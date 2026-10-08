@@ -296,7 +296,7 @@ before it reaches the cluster:
   `real_max / 255`.
 - **Truck RPM on a car tach**: `RPM_DISPLAY_MULTIPLIER` defaults to `1.0`, so
   the tach shows the true reading. A truck redlines around 2,500 rpm, which
-  barely moves a 7,000 rpm needle. Set it to `2.5` to stretch the truck's
+  barely moves the cluster's 8,000 rpm needle. Set it to `3.0` to stretch the truck's
   range across the dial.
 - **Fuel in litres or gallons**: the cluster wants a percentage. If SimTools
   gives the amount in the tank, set `FUEL_SCALE` to `100 / tank capacity`.
