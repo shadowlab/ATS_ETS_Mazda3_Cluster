@@ -71,10 +71,12 @@ void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
 // `#scan m` / `#scan h`: sends all-0xFF frames on every ID, SCAN_BLOCK IDs at
 // a time, SCAN_STEP_MS per block, printing each block as it starts. Watch the
 // cluster and note the block that lights a lamp, then narrow it down with
-// custom frames.
+// custom frames. `#scan h 4D0` starts at an ID, `#scan` stops and says where,
+// and `#scan resume` carries on from there.
 const uint16_t SCAN_BLOCK = 16;
 const unsigned long SCAN_STEP_MS = 2000;
 bool scanning = false;
+bool scanStarted = false;  // a scan has run since boot, so resume makes sense
 bool scanMs = false;
 uint16_t scanBase = 0;
 unsigned long scanStepStartMs = 0;
@@ -84,7 +86,8 @@ void printScanBlock() {
   DEBUG_PORT.print(scanMs ? F("MS 0x") : F("HS 0x"));
   DEBUG_PORT.print(scanBase, HEX);
   DEBUG_PORT.print(F("-0x"));
-  DEBUG_PORT.println(scanBase + SCAN_BLOCK - 1, HEX);
+  uint16_t last = scanBase + SCAN_BLOCK - 1;
+  DEBUG_PORT.println(last > 0x7FF ? 0x7FF : last, HEX);
 }
 
 void sendScanFrames(unsigned long now) {
@@ -100,7 +103,7 @@ void sendScanFrames(unsigned long now) {
     printScanBlock();
   }
   static const uint8_t ff[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK; id++) {
+  for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK && id <= 0x7FF; id++) {
     if (scanMs) {
       sendMsFrame(id, ff);
     } else if (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO) {
@@ -214,7 +217,9 @@ void sendClusterFrames(unsigned long now) {
 //   #-                             remove all custom frames, stop a scan
 //   #?                             list custom frames
 //   #scan m / #scan h              scan every ID on MS-CAN / HS-CAN
-//   #scan                          stop a scan
+//   #scan h 4D0                    scan HS-CAN starting at 0x4D0
+//   #scan                          stop a scan (prints where it stopped)
+//   #scan resume                   carry on from where it stopped
 // A custom frame with a built-in ID (0x201/0x212/0x420/0x433/0x4B0) replaces
 // that built-in frame until it is removed.
 
@@ -255,21 +260,50 @@ void handleCommand(const char *cmd) {
   if (strncmp(cmd, "scan", 4) == 0) {
     const char *arg = cmd + 4;
     while (*arg == ' ') arg++;
+    if (*arg == 'r' || *arg == 'R') {
+      // #scan resume: carry on from the block where the last scan stopped.
+      if (!scanStarted) {
+        DEBUG_PORT.println(F("nothing to resume - start with #scan h or #scan m"));
+        return;
+      }
+      scanning = true;
+      scanStepStartMs = millis();
+      printScanBlock();
+      return;
+    }
     if (*arg == 'm' || *arg == 'M' || *arg == 'h' || *arg == 'H') {
-      scanMs = (*arg == 'm' || *arg == 'M');
+      bool ms = (*arg == 'm' || *arg == 'M');
 #if !MS_CAN_ENABLED
-      if (scanMs) {
+      if (ms) {
         DEBUG_PORT.println(F("MS-CAN not enabled - set MS_CAN_ENABLED 1 in config.h"));
         return;
       }
 #endif
+      arg++;
+      if (*arg == 's' || *arg == 'S') arg++;  // accept "hs" / "ms"
+      while (*arg == ' ') arg++;
+      if (arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) arg += 2;
+      long start = nextHex(arg);
+      if (start > 0x7FF) {
+        DEBUG_PORT.println(F("start ID must be 0-7FF"));
+        return;
+      }
+      scanMs = ms;
+      scanBase = start < 0 ? 0 : (uint16_t)start;
       scanning = true;
-      scanBase = 0;
+      scanStarted = true;
       scanStepStartMs = millis();
       printScanBlock();
-    } else {
+      return;
+    }
+    if (scanning) {
       scanning = false;
-      DEBUG_PORT.println(F("scan stopped"));
+      DEBUG_PORT.print(F("scan stopped at "));
+      DEBUG_PORT.print(scanMs ? F("MS 0x") : F("HS 0x"));
+      DEBUG_PORT.print(scanBase, HEX);
+      DEBUG_PORT.println(F(" - #scan resume to continue"));
+    } else {
+      DEBUG_PORT.println(F("no scan running"));
     }
     return;
   }

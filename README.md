@@ -191,7 +191,9 @@ nodes on the bench.
    and prints each block, such as `scan MS 0x430-0x43F`. It takes about four
    minutes to cover every ID.
 2. Note the block that lights a turn arrow or the high beam, then type `#scan`
-   to stop.
+   to stop. It prints where it stopped, for example
+   `scan stopped at HS 0x4D0`. Type `#scan resume` to carry on from that
+   block, or `#scan h 4D0` (or `#scan m 4D0`) to start from any ID.
 3. Narrow it down with custom frames, for example `#m433 FF FF FF FF FF FF FF FF`
    for one ID, then one byte at a time, then one bit.
 4. Add the confirmed ID, byte and bit to `mazda3_can.h`.
@@ -374,7 +376,9 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#-` | Remove all custom frames and stop a scan |
 | `#?` | List custom frames |
 | `#scan m` / `#scan h` | Scan every ID on MS-CAN / HS-CAN with all-`0xFF` frames, 16 IDs every 2 s (see [Finding the lamp frames](#finding-the-lamp-frames)) |
-| `#scan` | Stop a scan |
+| `#scan h 4D0` / `#scan m 4D0` | Start a scan at ID `0x4D0` and carry on up from there (`hs`/`ms` and a `0x` prefix also work) |
+| `#scan` | Stop a scan and print the block it stopped at |
+| `#scan resume` | Carry on from the block where the last scan stopped |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
 If nothing comes back, check that the Serial Monitor's line ending is set to
