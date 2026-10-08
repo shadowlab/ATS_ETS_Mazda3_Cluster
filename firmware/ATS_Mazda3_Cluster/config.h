@@ -43,7 +43,7 @@
 
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
-#define SWEEP_MAX_RPM 7800
+#define SWEEP_MAX_RPM 7500
 #define SWEEP_MAX_KMH 225  // 140 mph, the top of the speedo
 #define SWEEP_DURATION_MS 1500  // each direction
 
