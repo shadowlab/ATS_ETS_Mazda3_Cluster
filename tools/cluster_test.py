@@ -29,8 +29,8 @@ except ImportError:
     sys.exit("pyserial is required:  pip install pyserial")
 
 # Values here are in the units the firmware expects *before* its scaling, i.e.
-# what SimTools would send with the default config. Truck rpm is multiplied by
-# RPM_DISPLAY_MULTIPLIER on the board, so 2500 here fills a 7000 rpm dial.
+# what SimTools would send with the default config. Rpm is multiplied by
+# RPM_DISPLAY_MULTIPLIER on the board (1.0 by default, so it reads true).
 LAMP_KEYS = ["E", "B", "O", "L", "Y", "H", "P"]
 
 
@@ -86,7 +86,7 @@ def main():
             rpm, speed, fuel = args.rpm, args.speed, args.fuel
             if args.sweep:
                 k = (1 - math.cos(t * 2 * math.pi / 8)) / 2  # 8 s full cycle
-                rpm, speed, fuel = k * 2800, k * 130, k * 100
+                rpm, speed, fuel = k * 6500, k * 130, k * 100
             lamps = {}
             if args.lamps:
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True

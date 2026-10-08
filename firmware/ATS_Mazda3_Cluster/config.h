@@ -69,11 +69,10 @@
 #define FUEL_SCALE      1.0f
 #define FUEL_OFFSET     0.0f
 
-// Trucks idle around 600 rpm and redline near 2500 - on a 7000 rpm car
-// tachometer that barely moves the needle. Multiply RPM before it goes to the
-// cluster so a truck's range fills the dial (2.5 maps 2500 truck rpm -> 6250).
-// Set to 1.0 for a true reading.
-#define RPM_DISPLAY_MULTIPLIER 2.5f
+// Multiplies RPM before it goes to the cluster. 1.0 shows the true reading.
+// Trucks redline near 2500 rpm, which barely moves a 7000 rpm car tach; 2.5
+// stretches a truck's range across the dial (2500 truck rpm -> 6250).
+#define RPM_DISPLAY_MULTIPLIER 1.0f
 
 // --------------------------------------------- Optional GPIO indicator outputs
 // The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the
