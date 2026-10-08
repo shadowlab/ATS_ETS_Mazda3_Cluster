@@ -32,11 +32,11 @@ static void testRpmSpeedFrame() {
   s.throttlePct = 50;
   uint8_t b[8];
   mazda3::buildRpmSpeed(s, b);
-  // 3000 * 4 = 12000 = 0x2EE0
-  CHECK(b[0] == 0x2E && b[1] == 0xE0);
+  // 3000 rpm 1:1 = 0x0BB8
+  CHECK(b[0] == 0x0B && b[1] == 0xB8);
   CHECK(b[2] == 0xFF && b[3] == 0xFF);
-  // 100 * 100 + 10000 = 20000 = 0x4E20
-  CHECK(b[4] == 0x4E && b[5] == 0x20);
+  // 100 km/h * 177.6 = 17760 = 0x4560
+  CHECK(b[4] == 0x45 && b[5] == 0x60);
   CHECK(b[6] == 100);
   CHECK(b[7] == 0xFF);
 }
@@ -44,17 +44,19 @@ static void testRpmSpeedFrame() {
 static void testStoppedAndClamping() {
   mazda3::ClusterState s = {};
   s.rpm = -50;           // negative clamps to 0
-  s.speedKmh = 0;        // 0 km/h -> 10000 = 0x2710
+  s.speedKmh = 0;        // 0 km/h -> 0
   s.throttlePct = 500;   // clamps to 255
   uint8_t b[8];
   mazda3::buildRpmSpeed(s, b);
   CHECK(b[0] == 0 && b[1] == 0);
-  CHECK(b[4] == 0x27 && b[5] == 0x10);
+  CHECK(b[4] == 0 && b[5] == 0);
   CHECK(b[6] == 255);
 
-  s.rpm = 100000;  // overflows 16 bits -> clamps
+  s.rpm = 100000;     // overflows 16 bits -> clamps
+  s.speedKmh = 1000;  // 177600 overflows -> clamps
   mazda3::buildRpmSpeed(s, b);
   CHECK(b[0] == 0xFF && b[1] == 0xFF);
+  CHECK(b[4] == 0xFF && b[5] == 0xFF);
 }
 
 static void testWheelSpeedFrame() {
@@ -71,16 +73,38 @@ static void testEngineInfoFrame() {
   uint8_t b[8];
   mazda3::buildEngineInfo(s, b);
   CHECK(b[0] == 130);
+  CHECK(b[1] == 0);
   CHECK(b[4] == 1);  // oil pressure OK
-  CHECK(b[5] == 0 && b[6] == 0);
+  CHECK(b[6] == 0);
 
   s.checkEngine = true;
-  s.chargeWarning = true;
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[1] == 0x40);
+  CHECK(b[4] == 1 && b[6] == 0);
+
+  s.checkEngine = false;
   s.oilWarning = true;
   mazda3::buildEngineInfo(s, b);
+  CHECK(b[1] == 0);
   CHECK(b[4] == 0);
-  CHECK(b[5] == mazda3::B5_CHECK_ENGINE);
-  CHECK(b[6] == (mazda3::B6_CHARGE | mazda3::B6_OIL_PRESSURE));
+
+  s.oilWarning = false;
+  s.chargeWarning = true;
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[6] == 0x40);
+}
+
+static void testBrakeLampsFrame() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildBrakeLamps(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.parkingBrake = true;
+  mazda3::buildBrakeLamps(s, b);
+  CHECK(b[4] == 0x40);
+  for (int i = 0; i < 8; i++) {
+    if (i != 4) CHECK(b[i] == 0);
+  }
 }
 
 static void testFuelLevelFrame() {
@@ -155,6 +179,7 @@ int main() {
   testWheelSpeedFrame();
   testEngineInfoFrame();
   testFuelLevelFrame();
+  testBrakeLampsFrame();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

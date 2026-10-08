@@ -11,7 +11,8 @@
 //  Serial fields (see README for the full table):
 //    R rpm   S speed   T coolant   A throttle   F fuel %
 //    E check-engine   B charge   O oil pressure     (0/1 warning lamps)
-//    L left turn   Y right turn   H high beam   P parking brake  (0/1)
+//    P parking brake                                (0/1, CAN)
+//    L left turn   Y right turn   H high beam      (0/1, hard-wired GPIO)
 // =============================================================================
 
 #include <SPI.h>
@@ -79,11 +80,12 @@ void applyTelemetry() {
   cluster.checkEngine = parser.value('E') >= 0.5f;
   cluster.chargeWarning = parser.value('B') >= 0.5f;
   cluster.oilWarning = parser.value('O') >= 0.5f;
+  cluster.parkingBrake = parser.value('P') >= 0.5f;
 
   setIndicator(PIN_LEFT_TURN, parser.value('L') >= 0.5f);
   setIndicator(PIN_RIGHT_TURN, parser.value('Y') >= 0.5f);
   setIndicator(PIN_HIGH_BEAM, parser.value('H') >= 0.5f);
-  setIndicator(PIN_PARK_BRAKE, parser.value('P') >= 0.5f);
+  setIndicator(PIN_PARK_BRAKE, cluster.parkingBrake);
 }
 
 // Game paused or closed: park the needles, lamps off.
@@ -94,6 +96,7 @@ void applyIdle() {
   cluster.checkEngine = false;
   cluster.chargeWarning = false;
   cluster.oilWarning = false;
+  cluster.parkingBrake = false;
   // Leave coolant and fuel where they were so those gauges don't plunge when
   // you pause.
 
@@ -103,23 +106,38 @@ void applyIdle() {
   setIndicator(PIN_PARK_BRAKE, false);
 }
 
+bool hasCustomFrame(uint16_t id) {
+  for (uint8_t i = 0; i < customCount; i++) {
+    if (customFrames[i].id == id) return true;
+  }
+  return false;
+}
+
+// Built-in frames step aside when a custom frame with the same ID is active,
+// so the cluster only ever sees one version of that ID.
+void sendBuiltIn(uint16_t id, const uint8_t *data) {
+  if (!hasCustomFrame(id)) sendFrame(id, data);
+}
+
 void sendClusterFrames(unsigned long now) {
   uint8_t buf[8];
 
   if (now - lastFastMs >= FAST_PERIOD_MS) {
     lastFastMs = now;
     mazda3::buildRpmSpeed(cluster, buf);
-    sendFrame(mazda3::ID_RPM_SPEED, buf);
+    sendBuiltIn(mazda3::ID_RPM_SPEED, buf);
     mazda3::buildWheelSpeed(cluster, buf);
-    sendFrame(mazda3::ID_WHEEL_SPEED, buf);
+    sendBuiltIn(mazda3::ID_WHEEL_SPEED, buf);
   }
 
   if (now - lastSlowMs >= SLOW_PERIOD_MS) {
     lastSlowMs = now;
     mazda3::buildEngineInfo(cluster, buf);
-    sendFrame(mazda3::ID_ENGINE_INFO, buf);
+    sendBuiltIn(mazda3::ID_ENGINE_INFO, buf);
     mazda3::buildFuelLevel(cluster, buf);
-    sendFrame(mazda3::ID_FUEL_LEVEL, buf);
+    sendBuiltIn(mazda3::ID_FUEL_LEVEL, buf);
+    mazda3::buildBrakeLamps(cluster, buf);
+    sendBuiltIn(mazda3::ID_BRAKE_LAMPS, buf);
     for (uint8_t i = 0; i < customCount; i++) {
       sendFrame(customFrames[i].id, customFrames[i].data, customFrames[i].len);
     }
@@ -131,8 +149,8 @@ void sendClusterFrames(unsigned long now) {
 //   #420                           remove custom frame 0x420
 //   #-                             remove all custom frames
 //   #?                             list custom frames
-// Custom frames are sent after the built-in ones, so a custom frame with a
-// built-in ID (0x201/0x420/0x433/0x4B0) overrides it on the bus.
+// A custom frame with a built-in ID (0x201/0x212/0x420/0x433/0x4B0) replaces
+// that built-in frame until it is removed.
 
 int hexDigit(char c) {
   if (c >= '0' && c <= '9') return c - '0';
@@ -244,7 +262,8 @@ void printStatus() {
   DEBUG_PORT.print(F(" lamps="));
   DEBUG_PORT.print(cluster.checkEngine);
   DEBUG_PORT.print(cluster.chargeWarning);
-  DEBUG_PORT.println(cluster.oilWarning);
+  DEBUG_PORT.print(cluster.oilWarning);
+  DEBUG_PORT.println(cluster.parkingBrake);
 }
 
 // --------------------------------------------------------- setup / loop

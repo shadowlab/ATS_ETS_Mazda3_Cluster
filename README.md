@@ -3,15 +3,14 @@ Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster
 
 ```
 American Truck      SimTools          Arduino Mega 2560          2005 Mazda 3
-Simulator   ──────► Game Engine ────► + Seeed CAN-BUS  ────────► instrument
+Simulator   ──────► or SimHub   ────► + Seeed CAN-BUS  ────────► instrument
 (telemetry)         (USB serial)      Shield (MCP2515) CAN 500k  cluster
                                          │
                                          └── GPIO ─► transistors ─► hard-wired lamps
-                                                                    (turn signals, high beam,
-                                                                     parking brake)
+                                                                    (turn signals, high beam)
 ```
 
-SimTools reads ATS telemetry and streams it as text over USB serial. The Mega
+SimTools or SimHub reads ATS telemetry and streams it as text over USB serial. The Mega
 parses it and continuously sends the CAN frames the cluster would normally get
 from the engine computer (PCM) and ABS unit, so the tach, speedo, temperature
 gauge, fuel gauge and warning lamps follow the game.
@@ -33,8 +32,9 @@ gauge, fuel gauge and warning lamps follow the game.
 - Arduino Mega 2560 (ATmega2560)
 - Seeed Studio CAN-BUS Shield (MCP2515 + MCP2551, 16 MHz crystal)
 - 12 V DC supply, at least 1 A (a bench supply or a 12 V wall adapter)
-- Optional, for the hard-wired lamps: 4× NPN transistors (2N2222/BC547) or a
-  small relay/optocoupler board, plus 1 kΩ base resistors
+- Optional, for the hard-wired lamps: 3× NPN transistors (2N2222/BC547),
+  1 kΩ base resistors, and a PNP/P-channel MOSFET or relay for the high beam's
+  +12 V side
 
 ### Shield on a Mega
 
@@ -71,20 +71,26 @@ Twist the CAN-H/CAN-L pair, and keep it away from the 12 V supply leads.
 
 ### Hard-wired lamps
 
-On the BK Mazda 3, the turn signals, high beam and parking brake lamps are not
-on CAN. They're separate wires into the cluster connector. The firmware drives
-pins **D3 (left turn), D5 (right turn), D6 (high beam) and D7 (parking brake)**
-(change them in `config.h`). Never connect an Arduino pin straight to the
-cluster, because these inputs work at 12 V. Use a transistor or relay per lamp.
+On the 2005 Mazda 3, the turn signals and high beam are not on CAN. They're
+separate wires into the cluster connector. The parking brake lamp *is* on CAN
+(`0x212`), so it needs no wiring. The firmware drives these pins (change them
+in `config.h`):
 
-- If the cluster input lights when **pulled to ground** (the parking brake
-  switch is usually like this), use an NPN transistor: Arduino pin → 1 kΩ →
-  base, emitter → ground, collector → cluster input.
-- If the input lights when **fed +12 V** (turn signals and high beam usually
-  are), use a high-side switch: a PNP or P-channel MOSFET driven by an NPN,
-  or a relay/optocoupler module.
+| Lamp | Arduino pin | Cluster pin | Lights when | Driver |
+|---|---|---|---|---|
+| Left turn | D3 | 1N | pulled to ground | NPN low-side |
+| Right turn | D5 | 1P | pulled to ground | NPN low-side |
+| High beam | D6 | 1K | fed +12 V | high-side switch |
 
-Check each input with a fused jumper wire before building the driver. If your
+Never connect an Arduino pin straight to the cluster, because these inputs work
+at 12 V. Use a transistor or relay per lamp:
+
+- **Low-side (turn signals):** NPN transistor (2N2222/BC547). Arduino pin →
+  1 kΩ → base, emitter → ground, collector → cluster pin.
+- **High-side (high beam):** a PNP or P-channel MOSFET driven by an NPN, or a
+  relay/optocoupler module, switching +12 V to the cluster pin.
+
+Confirm each pin with a fused jumper wire before building the driver. If your
 driver turns the lamp on when the pin is LOW, set `INDICATOR_ACTIVE_LOW 1`.
 
 ## Firmware setup
@@ -140,6 +146,37 @@ hold the port at a time.
    fields arrive, and parks the needles if nothing arrives for 1 s (the game
    is paused or closed).
 
+## SimHub setup (alternative to SimTools)
+
+The firmware doesn't care which program sends the text, so SimHub works too.
+
+1. In SimHub, enable the **Custom serial devices** plugin, add a device, and
+   pick the Mega's COM port at **115200** baud.
+2. Add an **update message** and set it to a computed formula (NCalc):
+
+   ```
+   'R' + format([Rpms], '0') +
+   'S' + format([SpeedKmh], '0.0') +
+   'T' + format([WaterTemperature], '0') +
+   'A' + format([Throttle], '0') +
+   'F' + format([FuelPercent], '0') +
+   'E' + if([EngineWarning] > 0, '1', '0') +
+   'O' + if([OilPressureWarning] > 0, '1', '0') +
+   'P' + if([Handbrake] > 0, '1', '0') +
+   'L' + if([TurnIndicatorLeft] > 0, '1', '0') +
+   'Y' + if([TurnIndicatorRight] > 0, '1', '0') +
+   'H' + if([HighBeam] > 0, '1', '0') +
+   ';'
+   ```
+
+   Check the preview in SimHub's formula editor while ATS is running. It should
+   show something like `R1450S72.0T88A35F64E0O0P0L1Y0H0;`. A property that
+   comes through as `True`/`False` or that SimHub doesn't know will show up
+   there. Fix it before sending, because stray letters are read as field keys.
+3. Set the update rate to 30–60 Hz.
+
+SimHub's `[SpeedKmh]` is already km/h, so leave `SPEED_SCALE` at `1.0`.
+
 ### Serial protocol
 
 Each field is an upper-case letter followed by a number, for example
@@ -160,7 +197,7 @@ Each field is an upper-case letter followed by a number, for example
 | `L` | Left turn signal | 0/1 (GPIO) |
 | `Y` | Right turn signal | 0/1 (GPIO) |
 | `H` | High beam | 0/1 (GPIO) |
-| `P` | Parking brake | 0/1 (GPIO) |
+| `P` | Parking brake | 0/1 |
 
 ### Scaling
 
@@ -185,20 +222,23 @@ All frames use 11-bit IDs at 500 kbit/s.
 
 | ID | Every | Bytes | Content |
 |---|---|---|---|
-| `0x201` | 20 ms | 0–1 | RPM × 4 (big-endian) |
-| | | 4–5 | Speed: km/h × 100 + 10000 |
+| `0x201` | 20 ms | 0–1 | RPM, 1:1 (big-endian) |
+| | | 4–5 | Speed: km/h × 177.6 (big-endian) |
 | | | 6 | Throttle × 2 |
-| `0x4B0` | 20 ms | 0–7 | Four wheel speeds, same encoding as `0x201` speed (keeps the ABS lamp quiet) |
+| `0x4B0` | 20 ms | 0–7 | Four wheel speeds: km/h × 100 + 10000 (keeps the ABS lamp quiet) |
 | `0x420` | 100 ms | 0 | Coolant: °C + 40 |
-| | | 4 | Oil pressure OK = 1 |
-| | | 5 | `0x40` = check-engine lamp |
-| | | 6 | `0x40` = charge lamp, `0x80` = oil pressure lamp |
+| | | 1 | `0x40` = check-engine lamp |
+| | | 4 | `1` = oil pressure OK, `0` = red oil lamp on |
+| | | 6 | `0x40` = charge lamp |
+| `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x433` | 100 ms | 0 | Fuel level: `0x00` (empty) to `0x64` (100, full); bytes 1–7 are `0x00` |
 
-`0x201` comes from community reverse-engineering of the Mazda 3. The `0x420`
-lamp bits are documented for the RX-8, which shares most of its CAN matrix with
-the Mazda 3. They're expected to match but haven't been confirmed on a BK
-cluster. Use the `#` command below to check them on yours.
+The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
+`SPEED_CAN_OFFSET`) and lamp bits are constants at the top of `mazda3_can.h`.
+The charge lamp bit and the `0x4B0` wheel-speed encoding come from RX-8
+research (the RX-8 shares much of its CAN matrix with the Mazda 3) and haven't
+been confirmed on a 2005 cluster. Use the `#` command below to check them on
+yours.
 
 ### Experimenting with frames over serial
 
@@ -208,7 +248,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 
 | Command | Effect |
 |---|---|
-| `#420 82 00 00 00 01 40 00 00` | Send this frame every 100 ms (hex). A built-in ID is overridden. |
+| `#420 82 40 00 00 01 00 00 00` | Send this frame every 100 ms (hex). If the ID is a built-in one, the built-in frame stops until you remove the custom one. |
 | `#420` | Stop sending custom frame `0x420` |
 | `#-` | Remove all custom frames |
 | `#?` | List custom frames |
@@ -218,9 +258,11 @@ frame that works, add it to `mazda3_can.h` permanently.
 
 ## Known limitations
 
-- **Odometer:** left static on purpose. Byte 1 of `0x420` is the odometer
-  increment counter. Ticking it would put real kilometres on your cluster's
-  odometer.
+- **Odometer:** not driven, so it won't put real distance on your cluster.
+- **Cruise control lamp:** not driven. The matrix lists `0x201` byte 6, which
+  is also the throttle byte, and doesn't give a bit value. If the green cruise
+  lamp flickers with throttle, that byte is the cause. Try values with
+  `#201 ...` to find the cruise bit.
 - **Other lamps** (airbag, ABS, TCS, door, seatbelt): may stay lit because
   their modules aren't present. Find their frames with the `#` command if they
   bother you.
@@ -232,9 +274,10 @@ frame that works, add it to `mazda3_can.h` permanently.
 | `CAN init failed` repeats in the Serial Monitor | Wrong CS pin (`CAN_CS_PIN` 9 vs 10), a v1.x shield without the Mega SPI jumpers, or an 8 MHz module (set `CAN_CLOCK MCP_8MHz`) |
 | Cluster dark | No 12 V on IG1/B+, or no ground |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped, missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the Arduino and the 12 V supply |
-| Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools, SimTools and another program both holding the port, or the output string doesn't end with `;` |
+| Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
 | Speed reads about 60% low | Telemetry is in mph and needs `SPEED_SCALE 1.609344` |
 | Tach barely moves | Raise `RPM_DISPLAY_MULTIPLIER` |
+| Tach or speedo reads a fixed ratio off | Adjust `RPM_CAN_FACTOR` or `SPEED_CAN_FACTOR` in `mazda3_can.h` |
 
 ## Development
 
