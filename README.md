@@ -85,6 +85,26 @@ the wire colours match a 2005 harness plug in this orientation.
 
 Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8.
 
+**24-pin plug, every position.** Counted with the plug held the same way, from
+the wire side: the top row is 1–12 from left to right, and the bottom row is
+13–24 from left to right. None of these pins are needed on the bench.
+
+```
+ top row:     1   2   3   4   5   6   7   8   9  10  11  12   (2W 2U 2S 2Q 2O 2M 2K 2I 2G 2E 2C 2A)
+ bottom row: 13  14  15  16  17  18  19  20  21  22  23  24   (2X 2V 2T 2R 2P 2N 2L 2J 2H 2F 2D 2B)
+```
+
+| Position | Factory pin | Wire | Signal | Bench |
+|---|---|---|---|---|
+| 1 | `2W` | BR/R (brown/red) | Fuel gauge sender, one side | Leave open (fuel is driven over CAN `0x433`) |
+| 2 | `2U` | W/R (white/red) | Fuel gauge sender, other side | Leave open |
+| 3 | `2S` | GY/O (grey/orange) | Immobilizer coil antenna | Leave open (the security lamp may blink) |
+| 4 | `2Q` | W/G (white/green) | Immobilizer coil antenna | Leave open |
+| 5 | `2O` | W (white) | Car navigation unit (only on cars with nav) | Leave open |
+| 6 | `2M` | R/Y (red/yellow) | Brake switch 2 (brake pedal) | Leave open |
+| 11 | `2C` | R/B (red/black) | Key reminder switch (key in the ignition) | Leave open |
+| 7–10, 12–24 | | — | Vacant | — |
+
 **Bench minimum** (this is all the cluster needs to wake up and move needles):
 
 | Cluster pin | Position | Wire | Signal | Connect to |
@@ -99,19 +119,14 @@ Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8.
 Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
 the car has a 10 A and a 15 A fuse on these lines.
 
-**Optional pins:**
+**Optional pins on the 16-pin plug:**
 
 | Cluster pin | Wire | Signal | Notes |
 |---|---|---|---|
 | `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
 | `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | Not used by this firmware. See [Turn signals and high beam](#turn-signals-and-high-beam) |
 | `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
-| `2U`, `2W` | W/R, BR/R | Fuel gauge sender (variable resistor between the two) | Not needed: the gauge is driven over CAN `0x433` |
-| `2M` | R/Y | Brake switch 2 (brake pedal) | Leave open |
-| `2C` | R/B | Key reminder switch | Leave open |
-| `2Q`, `2S` | W/G, GY/O | Immobilizer coil antenna | Leave open. The security lamp may blink |
 | `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
-| `2O` | W | Car navigation unit (only on cars with one) | Leave open |
 
 All other pins are vacant. In the car, the brake fluid-level and parking brake
 switches go to the junction box, not the cluster, which is why the parking
