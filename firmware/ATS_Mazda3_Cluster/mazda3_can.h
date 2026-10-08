@@ -24,8 +24,10 @@ const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 
 // ------------------------------------------------------- Calibration
-// 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (1:1, big-endian).
-const float RPM_CAN_FACTOR = 1.0f;
+// 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).
+// Bench-tested on a 2005 cluster: 1:1 read about 4% high (5000 showed 5200),
+// so the raw value is trimmed to 0.96.
+const float RPM_CAN_FACTOR = 0.96f;
 // 0x201 bytes 4-5: raw = km/h * SPEED_CAN_FACTOR + SPEED_CAN_OFFSET.
 // Bench-tested on a 2005 cluster: km/h * 177.6 read 1.78x high (75 km/h showed
 // 83 mph), so the cluster takes km/h * 100.

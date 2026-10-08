@@ -32,8 +32,8 @@ static void testRpmSpeedFrame() {
   s.throttlePct = 50;
   uint8_t b[8];
   mazda3::buildRpmSpeed(s, b);
-  // 3000 rpm 1:1 = 0x0BB8
-  CHECK(b[0] == 0x0B && b[1] == 0xB8);
+  // 3000 rpm * 0.96 = 2880 = 0x0B40
+  CHECK(b[0] == 0x0B && b[1] == 0x40);
   CHECK(b[2] == 0xFF && b[3] == 0xFF);
   // 100 km/h * 100 = 10000 = 0x2710
   CHECK(b[4] == 0x27 && b[5] == 0x10);
