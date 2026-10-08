@@ -9,7 +9,7 @@
 //  Library:  "CAN-BUS Shield" by Seeed Studio (Seeed_Arduino_CAN) v2.x.
 //
 //  Serial fields (see README for the full table):
-//    R rpm   S speed   T coolant   A throttle
+//    R rpm   S speed   T coolant   A throttle   F fuel %
 //    E check-engine   B charge   O oil pressure     (0/1 warning lamps)
 //    L left turn   Y right turn   H high beam   P parking brake  (0/1)
 // =============================================================================
@@ -73,6 +73,9 @@ void applyTelemetry() {
   cluster.speedKmh = scaled('S', SPEED_SCALE, SPEED_OFFSET);
   cluster.coolantC = scaled('T', COOLANT_SCALE, COOLANT_OFFSET);
   cluster.throttlePct = scaled('A', THROTTLE_SCALE, THROTTLE_OFFSET);
+  // Only once SimTools has sent fuel; otherwise keep the boot default rather
+  // than dropping the gauge to empty.
+  if (parser.seen('F')) cluster.fuelPct = scaled('F', FUEL_SCALE, FUEL_OFFSET);
   cluster.checkEngine = parser.value('E') >= 0.5f;
   cluster.chargeWarning = parser.value('B') >= 0.5f;
   cluster.oilWarning = parser.value('O') >= 0.5f;
@@ -91,7 +94,8 @@ void applyIdle() {
   cluster.checkEngine = false;
   cluster.chargeWarning = false;
   cluster.oilWarning = false;
-  // Leave coolant where it was so the gauge doesn't plunge when you pause.
+  // Leave coolant and fuel where they were so those gauges don't plunge when
+  // you pause.
 
   setIndicator(PIN_LEFT_TURN, false);
   setIndicator(PIN_RIGHT_TURN, false);
@@ -114,6 +118,8 @@ void sendClusterFrames(unsigned long now) {
     lastSlowMs = now;
     mazda3::buildEngineInfo(cluster, buf);
     sendFrame(mazda3::ID_ENGINE_INFO, buf);
+    mazda3::buildFuelLevel(cluster, buf);
+    sendFrame(mazda3::ID_FUEL_LEVEL, buf);
     for (uint8_t i = 0; i < customCount; i++) {
       sendFrame(customFrames[i].id, customFrames[i].data, customFrames[i].len);
     }
@@ -126,7 +132,7 @@ void sendClusterFrames(unsigned long now) {
 //   #-                             remove all custom frames
 //   #?                             list custom frames
 // Custom frames are sent after the built-in ones, so a custom frame with a
-// built-in ID (0x201/0x420/0x4B0) overrides it on the bus.
+// built-in ID (0x201/0x420/0x433/0x4B0) overrides it on the bus.
 
 int hexDigit(char c) {
   if (c >= '0' && c <= '9') return c - '0';
@@ -233,6 +239,8 @@ void printStatus() {
   DEBUG_PORT.print(cluster.coolantC, 0);
   DEBUG_PORT.print(F(" thr="));
   DEBUG_PORT.print(cluster.throttlePct, 0);
+  DEBUG_PORT.print(F(" fuel="));
+  DEBUG_PORT.print(cluster.fuelPct, 0);
   DEBUG_PORT.print(F(" lamps="));
   DEBUG_PORT.print(cluster.checkEngine);
   DEBUG_PORT.print(cluster.chargeWarning);
@@ -251,6 +259,7 @@ void setup() {
 
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;
+  cluster.fuelPct = 50;
 
   while (CAN.begin(CAN_SPEED, CAN_CLOCK) != CAN_OK) {
     DEBUG_PORT.println(F("CAN init failed - check shield, CS pin and crystal setting"));

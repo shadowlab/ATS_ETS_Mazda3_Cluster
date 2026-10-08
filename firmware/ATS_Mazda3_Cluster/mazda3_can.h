@@ -21,6 +21,7 @@ namespace mazda3 {
 const uint16_t ID_RPM_SPEED   = 0x201;  // PCM: engine RPM, vehicle speed, throttle
 const uint16_t ID_ENGINE_INFO = 0x420;  // PCM: coolant temp, odometer, warning lamps
 const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
+const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
 
 // ------------------------------------------------------- 0x420 lamp bits
 const uint8_t B5_CHECK_ENGINE = 0x40;  // byte 5
@@ -33,6 +34,7 @@ struct ClusterState {
   float speedKmh;     // vehicle speed, km/h (the cluster converts for mph dials)
   float coolantC;     // coolant temperature, deg C
   float throttlePct;  // 0..100
+  float fuelPct;      // 0 (empty) .. 100 (full)
   bool checkEngine;
   bool chargeWarning;
   bool oilWarning;
@@ -91,6 +93,13 @@ inline void buildEngineInfo(const ClusterState &s, uint8_t out[8]) {
   out[5] = s.checkEngine ? B5_CHECK_ENGINE : 0;
   out[6] = (s.chargeWarning ? B6_CHARGE : 0) | (s.oilWarning ? B6_OIL_PRESSURE : 0);
   out[7] = 0;
+}
+
+// 0x433: [fuel % 0x00..0x64][00][00][00][00][00][00][00]
+inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
+  float pct = s.fuelPct > 100.0f ? 100.0f : s.fuelPct;
+  out[0] = clampU8(pct);
+  for (int i = 1; i < 8; i++) out[i] = 0;
 }
 
 }  // namespace mazda3

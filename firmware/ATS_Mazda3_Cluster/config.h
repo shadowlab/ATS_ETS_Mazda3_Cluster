@@ -64,6 +64,10 @@
 #define COOLANT_OFFSET  0.0f
 #define THROTTLE_SCALE  1.0f
 #define THROTTLE_OFFSET 0.0f
+// Fuel is expected as a percentage (0 = empty, 100 = full). If SimTools gives
+// litres or gallons instead, scale by 100 / tank capacity.
+#define FUEL_SCALE      1.0f
+#define FUEL_OFFSET     0.0f
 
 // Trucks idle around 600 rpm and redline near 2500 - on a 7000 rpm car
 // tachometer that barely moves the needle. Multiply RPM before it goes to the
