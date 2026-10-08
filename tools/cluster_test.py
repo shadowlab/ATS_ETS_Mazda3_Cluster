@@ -86,7 +86,7 @@ def main():
             rpm, speed, fuel = args.rpm, args.speed, args.fuel
             if args.sweep:
                 k = (1 - math.cos(t * 2 * math.pi / 8)) / 2  # 8 s full cycle
-                rpm, speed, fuel = k * 8000, k * 130, k * 100
+                rpm, speed, fuel = k * 7800, k * 140, k * 100
             lamps = {}
             if args.lamps:
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
