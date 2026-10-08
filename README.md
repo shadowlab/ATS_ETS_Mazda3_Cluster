@@ -62,6 +62,29 @@ the wire colours match a 2005 harness plug in this orientation.
  bottom row: 16  15  14  13  12  11  10   9      (1P 1N 1L 1J 1H 1F 1D 1B)
 ```
 
+**16-pin plug, every position:**
+
+| Position | Factory pin | Wire | Signal | Bench |
+|---|---|---|---|---|
+| 1 | `1A` | — | Vacant | — |
+| 2 | `1C` | O/B (orange/black) | B+, constant 12 V | 12 V supply + |
+| 3 | `1E` | B/O (black/orange) | Ground | 12 V supply − and Arduino GND |
+| 4 | `1G` | G/R (green/red) | IG1, ignition 12 V | 12 V supply + |
+| 5 | `1I` | GY/R (grey/red) | HS-CAN H, 500 kbit/s | Shield CAN-H |
+| 6 | `1K` | L/R (blue/red) | HS-CAN L, 500 kbit/s | Shield CAN-L |
+| 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus) | Leave open |
+| 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | Leave open |
+| 9 | `1B` | B/Y (black/yellow) | Oil pressure switch (grounded = oil lamp on) | Leave open |
+| 10 | `1D` | — | Vacant | — |
+| 11 | `1F` | B/O (black/orange) | Ground | 12 V supply − and Arduino GND |
+| 12 | `1H` | — | Vacant | — |
+| 13 | `1J` | — | Vacant | — |
+| 14 | `1L` | O (orange) | Illumination, +12 V with headlights on | Optional: 12 V via a switch for the backlight |
+| 15 | `1N` | — | Vacant | — |
+| 16 | `1P` | B/G (black/green) | Washer fluid-level sensor (only on cars with one) | Leave open |
+
+Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8.
+
 **Bench minimum** (this is all the cluster needs to wake up and move needles):
 
 | Cluster pin | Position | Wire | Signal | Connect to |
