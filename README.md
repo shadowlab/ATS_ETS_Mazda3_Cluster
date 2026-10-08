@@ -14,7 +14,7 @@ Simulator   ──────► Game Engine ────► + Seeed CAN-BUS  �
 SimTools reads ATS telemetry and streams it as text over USB serial. The Mega
 parses it and continuously sends the CAN frames the cluster would normally get
 from the engine computer (PCM) and ABS unit, so the tach, speedo, temperature
-gauge and warning lamps follow the game.
+gauge, fuel gauge and warning lamps follow the game.
 
 ## Repository layout
 
@@ -106,7 +106,7 @@ shows the CAN link works. If the needles don't move, see
 ```
 pip install pyserial
 python tools/cluster_test.py COM5 --sweep            # needles sweep continuously
-python tools/cluster_test.py COM5 --rpm 2000 --speed 100 --coolant 90
+python tools/cluster_test.py COM5 --rpm 2000 --speed 100 --coolant 90 --fuel 50
 python tools/cluster_test.py COM5 --rpm 800 --lamps  # cycle each lamp in turn
 ```
 
@@ -129,7 +129,7 @@ hold the port at a time.
    by the SimTools output token for that value, and end it with `;`. For example:
 
    ```
-   R<rpm token>S<speed token>T<water temp token>A<throttle token>E<engine warning token>B<battery warning token>O<oil warning token>L<left blinker token>Y<right blinker token>H<high beam token>P<parking brake token>;
+   R<rpm token>S<speed token>T<water temp token>A<throttle token>F<fuel token>E<engine warning token>B<battery warning token>O<oil warning token>L<left blinker token>Y<right blinker token>H<high beam token>P<parking brake token>;
    ```
 
    Replace each `<... token>` with the matching dash/telemetry output from your
@@ -143,7 +143,7 @@ hold the port at a time.
 ### Serial protocol
 
 Each field is an upper-case letter followed by a number, for example
-`R2350S88.5T90A42E0B0O0L1Y0H0P0;`. Fields can be in any order, and separators
+`R2350S88.5T90A42F75E0B0O0L1Y0H0P0;`. Fields can be in any order, and separators
 (`;`, `,`, spaces, newlines) are optional between fields. End each packet with
 `;` or a newline so the last field is applied immediately.
 
@@ -153,6 +153,7 @@ Each field is an upper-case letter followed by a number, for example
 | `S` | Vehicle speed | km/h |
 | `T` | Coolant temperature | °C |
 | `A` | Throttle / accelerator | % |
+| `F` | Fuel level | % (0 empty, 100 full) |
 | `E` | Check-engine lamp | 0/1 |
 | `B` | Battery/charge lamp | 0/1 |
 | `O` | Oil pressure lamp | 0/1 |
@@ -175,6 +176,8 @@ before it reaches the cluster:
 - **Truck RPM on a car tach**: a truck redlines around 2,500 rpm, which barely
   moves a 7,000 rpm needle. `RPM_DISPLAY_MULTIPLIER` (default `2.5`) stretches
   the truck's range across the dial. Set it to `1.0` for a true reading.
+- **Fuel in litres or gallons**: the cluster wants a percentage. If SimTools
+  gives the amount in the tank, set `FUEL_SCALE` to `100 / tank capacity`.
 
 ## CAN frames sent
 
@@ -190,6 +193,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | | | 4 | Oil pressure OK = 1 |
 | | | 5 | `0x40` = check-engine lamp |
 | | | 6 | `0x40` = charge lamp, `0x80` = oil pressure lamp |
+| `0x433` | 100 ms | 0 | Fuel level: `0x00` (empty) to `0x64` (100, full); bytes 1–7 are `0x00` |
 
 `0x201` comes from community reverse-engineering of the Mazda 3. The `0x420`
 lamp bits are documented for the RX-8, which shares most of its CAN matrix with
@@ -214,10 +218,6 @@ frame that works, add it to `mazda3_can.h` permanently.
 
 ## Known limitations
 
-- **Fuel gauge:** on the BK, the fuel gauge reads the tank sender directly
-  through the cluster connector, not over CAN, so it isn't driven yet. To drive
-  it, emulate the sender's resistance with a digital potentiometer or resistor
-  ladder controlled by the Mega (the Mega has plenty of spare pins).
 - **Odometer:** left static on purpose. Byte 1 of `0x420` is the odometer
   increment counter. Ticking it would put real kilometres on your cluster's
   odometer.

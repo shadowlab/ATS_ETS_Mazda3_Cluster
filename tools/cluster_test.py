@@ -9,6 +9,7 @@ Requires pyserial:  pip install pyserial
 Examples:
   python cluster_test.py COM5 --sweep               # needles up and down forever
   python cluster_test.py COM5 --rpm 800 --speed 60  # hold fixed values
+  python cluster_test.py COM5 --fuel 25             # fuel gauge to a quarter
   python cluster_test.py COM5 --rpm 800 --lamps     # cycle warning/indicator lamps
   python cluster_test.py COM5 --raw "420 82 00 00 00 01 40 00 00"   # inject a frame
   python cluster_test.py COM5 --raw "-"             # clear injected frames
@@ -33,9 +34,9 @@ except ImportError:
 LAMP_KEYS = ["E", "B", "O", "L", "Y", "H", "P"]
 
 
-def packet(rpm, speed, coolant, throttle, lamps=None):
+def packet(rpm, speed, coolant, throttle, fuel, lamps=None):
     lamps = lamps or {}
-    fields = [f"R{rpm:.0f}", f"S{speed:.1f}", f"T{coolant:.0f}", f"A{throttle:.0f}"]
+    fields = [f"R{rpm:.0f}", f"S{speed:.1f}", f"T{coolant:.0f}", f"A{throttle:.0f}", f"F{fuel:.0f}"]
     fields += [f"{k}{1 if lamps.get(k) else 0}" for k in LAMP_KEYS]
     return ("".join(fields) + ";\n").encode("ascii")
 
@@ -58,6 +59,7 @@ def main():
     ap.add_argument("--speed", type=float, default=0, help="km/h")
     ap.add_argument("--coolant", type=float, default=90, help="deg C")
     ap.add_argument("--throttle", type=float, default=0, help="percent")
+    ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
     ap.add_argument("--raw", help="send a '#' command (custom CAN frame) and exit")
     args = ap.parse_args()
@@ -81,14 +83,14 @@ def main():
     try:
         while True:
             t = time.time() - start
-            rpm, speed = args.rpm, args.speed
+            rpm, speed, fuel = args.rpm, args.speed, args.fuel
             if args.sweep:
                 k = (1 - math.cos(t * 2 * math.pi / 8)) / 2  # 8 s full cycle
-                rpm, speed = k * 2800, k * 200
+                rpm, speed, fuel = k * 2800, k * 200, k * 100
             lamps = {}
             if args.lamps:
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
-            port.write(packet(rpm, speed, args.coolant, args.throttle, lamps))
+            port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps))
             read_back(port)
             time.sleep(period)
     except KeyboardInterrupt:
