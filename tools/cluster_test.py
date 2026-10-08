@@ -11,7 +11,7 @@ Examples:
   python cluster_test.py COM5 --rpm 800 --speed 60  # hold fixed values
   python cluster_test.py COM5 --fuel 25             # fuel gauge to a quarter
   python cluster_test.py COM5 --rpm 800 --lamps     # cycle warning/indicator lamps
-  python cluster_test.py COM5 --raw "420 82 00 00 00 01 40 00 00"   # inject a frame
+  python cluster_test.py COM5 --raw "420 82 40 00 00 01 00 00 00"   # inject a frame
   python cluster_test.py COM5 --raw "-"             # clear injected frames
 
 Close the Arduino Serial Monitor and SimTools first - only one program can

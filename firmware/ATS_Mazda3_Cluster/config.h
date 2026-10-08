@@ -76,10 +76,15 @@
 #define RPM_DISPLAY_MULTIPLIER 2.5f
 
 // --------------------------------------------- Hard-wired indicator outputs
-// On the BK Mazda 3 the turn signals, high beam and parking brake lamps are
-// wired directly into the cluster connector rather than sent over CAN. Each
-// pin below drives a transistor/relay that switches the matching cluster
+// On the 2005 Mazda 3 the turn signals and high beam are wired directly into
+// the cluster connector rather than sent over CAN:
+//   left turn  - ground pin 1N        right turn - ground pin 1P
+//   high beam  - +12 V to pin 1K
+// Each pin below drives a transistor/relay that switches the matching cluster
 // input (see README). Set a pin to -1 to disable it.
+//
+// The parking brake lamp is sent over CAN (0x212). PIN_PARK_BRAKE is only for
+// clusters where it turns out to be hard-wired instead; it's off by default.
 //
 // Avoid D2 (shield interrupt), D4 (shield SD card CS), D9/D10 (CAN CS),
 // D50-D53 (Mega SPI) and D0/D1 (USB serial to SimTools). The Mega has plenty
@@ -87,7 +92,7 @@
 #define PIN_LEFT_TURN   3
 #define PIN_RIGHT_TURN  5
 #define PIN_HIGH_BEAM   6
-#define PIN_PARK_BRAKE  7
+#define PIN_PARK_BRAKE  -1
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
