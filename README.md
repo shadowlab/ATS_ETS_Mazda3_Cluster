@@ -305,7 +305,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | ID | Every | Bytes | Content |
 |---|---|---|---|
 | `0x201` | 20 ms | 0–1 | RPM, 1:1 (big-endian) |
-| | | 4–5 | Speed: km/h × 177.6 (big-endian) |
+| | | 4–5 | Speed: km/h × 100 (big-endian) |
 | | | 6 | Throttle × 2 |
 | `0x4B0` | 20 ms | 0–7 | Four wheel speeds: km/h × 100 + 10000 (keeps the ABS lamp quiet) |
 | `0x420` | 100 ms | 0 | Coolant: °C + 40 |

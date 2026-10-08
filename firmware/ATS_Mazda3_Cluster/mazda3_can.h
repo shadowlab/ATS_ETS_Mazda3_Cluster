@@ -27,7 +27,9 @@ const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (1:1, big-endian).
 const float RPM_CAN_FACTOR = 1.0f;
 // 0x201 bytes 4-5: raw = km/h * SPEED_CAN_FACTOR + SPEED_CAN_OFFSET.
-const float SPEED_CAN_FACTOR = 177.6f;
+// Bench-tested on a 2005 cluster: km/h * 177.6 read 1.78x high (75 km/h showed
+// 83 mph), so the cluster takes km/h * 100.
+const float SPEED_CAN_FACTOR = 100.0f;
 const float SPEED_CAN_OFFSET = 0.0f;
 
 // ------------------------------------------------------------ Lamp bits
