@@ -194,7 +194,7 @@ shows the CAN link works. If the needles don't move, see
 ```
 pip install pyserial
 python tools/cluster_test.py COM5 --sweep            # needles sweep continuously
-python tools/cluster_test.py COM5 --rpm 2000 --speed 100 --coolant 90 --fuel 50
+python tools/cluster_test.py COM5 --rpm 2000 --speed 60 --coolant 90 --fuel 50
 python tools/cluster_test.py COM5 --rpm 800 --lamps  # cycle each lamp in turn
 ```
 
@@ -238,7 +238,7 @@ The firmware doesn't care which program sends the text, so SimHub works too.
 
    ```
    'R' + format([Rpms], '0') +
-   'S' + format([SpeedKmh], '0.0') +
+   'S' + format([SpeedMph], '0.0') +
    'T' + format([WaterTemperature], '0') +
    'A' + format([Throttle], '0') +
    'F' + format([FuelPercent], '0') +
@@ -257,7 +257,8 @@ The firmware doesn't care which program sends the text, so SimHub works too.
    there. Fix it before sending, because stray letters are read as field keys.
 3. Set the update rate to 30–60 Hz.
 
-SimHub's `[SpeedKmh]` is already km/h, so leave `SPEED_SCALE` at `1.0`.
+SimHub's `[SpeedMph]` is mph, which matches the default `SPEED_SCALE`. If you
+send `[SpeedKmh]` instead, set `SPEED_SCALE 1.0`.
 
 ### Serial protocol
 
@@ -269,7 +270,7 @@ Each field is an upper-case letter followed by a number, for example
 | Field | Meaning | Default unit |
 |---|---|---|
 | `R` | Engine RPM | rpm |
-| `S` | Vehicle speed | km/h |
+| `S` | Vehicle speed | mph |
 | `T` | Coolant temperature | °C |
 | `A` | Throttle / accelerator | % |
 | `F` | Fuel level | % (0 empty, 100 full) |
@@ -286,9 +287,10 @@ Each field is an upper-case letter followed by a number, for example
 Every value goes through `physical = raw × SCALE + OFFSET` (in `config.h`)
 before it reaches the cluster:
 
-- **Speed in mph**: if your SimTools output gives mph, set
-  `SPEED_SCALE 1.609344`. The cluster always takes km/h on CAN, and a US
-  cluster converts to mph itself. If speed arrives in m/s, use `3.6`.
+- **Speed units**: speed is expected in mph, and the default
+  `SPEED_SCALE 1.609344` converts it to the km/h the cluster takes on CAN (a
+  US cluster converts back to mph on the dial). If your speed arrives in
+  km/h, set `SPEED_SCALE 1.0`. If it arrives in m/s, use `3.6`.
 - **Bit-range output**: if SimTools sends values scaled to a bit range
   (for example 8-bit, 0–255) rather than real units, set the scale to
   `real_max / 255`.
@@ -357,7 +359,7 @@ frame that works, add it to `mazda3_can.h` permanently.
 | Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the Arduino and the 12 V supply |
 | Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
-| Speed reads about 60% low | Telemetry is in mph and needs `SPEED_SCALE 1.609344` |
+| Speed reads about 1.6× too high or too low | `SPEED_SCALE` doesn't match your units: `1.609344` for mph (default), `1.0` for km/h, `3.6` for m/s |
 | Tach barely moves | Raise `RPM_DISPLAY_MULTIPLIER` |
 | Tach or speedo reads a fixed ratio off | Adjust `RPM_CAN_FACTOR` or `SPEED_CAN_FACTOR` in `mazda3_can.h` |
 

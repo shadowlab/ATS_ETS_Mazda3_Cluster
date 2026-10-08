@@ -50,15 +50,15 @@
 // ---------------------------------------------------------- Input scaling
 // physical = raw * SCALE + OFFSET, applied to every value SimTools sends.
 //
-// Defaults assume SimTools sends real units (RPM, km/h, deg C, %). If your
+// Defaults assume SimTools sends real units (RPM, mph, deg C, %). If your
 // output is set to a bit range instead (e.g. 8-bit = 0..255), rescale here.
 // Example: 8-bit RPM output covering 0..3000 rpm -> RPM_SCALE (3000.0 / 255.0)
 //
-// American Truck Simulator reports speed in whatever SimTools hands over; if
-// it arrives in mph use SPEED_SCALE 1.609344, if in m/s use 3.6.
+// Speed is expected in mph: SPEED_SCALE converts it to the km/h the cluster
+// takes on CAN. If your speed arrives in km/h use 1.0, if in m/s use 3.6.
 #define RPM_SCALE       1.0f
 #define RPM_OFFSET      0.0f
-#define SPEED_SCALE     1.0f
+#define SPEED_SCALE     1.609344f
 #define SPEED_OFFSET    0.0f
 #define COOLANT_SCALE   1.0f
 #define COOLANT_OFFSET  0.0f
