@@ -115,3 +115,18 @@
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
+
+// --------------------------------------------- Body bus test (single shield)
+// Set to 1 to try the body bus (MS-CAN) with the one shield you already have:
+// move the shield's CAN-H/CAN-L wires from cluster positions 5/6 to 7/8. The
+// shield then runs at 125 kbit/s, the boot sweep and all the gauge frames are
+// switched off (the needles won't move), and `#scan h` and `#...` custom frames
+// go out on the body bus. Set back to 0 and move the wires back afterwards.
+#define BODY_BUS_TEST 0
+
+#if BODY_BUS_TEST
+#undef CAN_SPEED
+#define CAN_SPEED CAN_125KBPS
+#undef SWEEP_ON_BOOT
+#define SWEEP_ON_BOOT 0
+#endif

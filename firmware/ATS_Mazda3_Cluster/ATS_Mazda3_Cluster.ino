@@ -73,6 +73,11 @@ void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
 // cluster and note the block that lights a lamp, then narrow it down with
 // custom frames. `#scan h 4D0` starts at an ID, `#scan` stops and says where,
 // and `#scan resume` carries on from there.
+#if BODY_BUS_TEST
+#define MAIN_BUS_LABEL "MS (main shield) 0x"
+#else
+#define MAIN_BUS_LABEL "HS 0x"
+#endif
 const uint16_t SCAN_BLOCK = 16;
 const unsigned long SCAN_STEP_MS = 2000;
 bool scanning = false;
@@ -83,7 +88,7 @@ unsigned long scanStepStartMs = 0;
 
 void printScanBlock() {
   DEBUG_PORT.print(F("scan "));
-  DEBUG_PORT.print(scanMs ? F("MS 0x") : F("HS 0x"));
+  DEBUG_PORT.print(scanMs ? F("MS 0x") : F(MAIN_BUS_LABEL));
   DEBUG_PORT.print(scanBase, HEX);
   DEBUG_PORT.print(F("-0x"));
   uint16_t last = scanBase + SCAN_BLOCK - 1;
@@ -106,7 +111,8 @@ void sendScanFrames(unsigned long now) {
   for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK && id <= 0x7FF; id++) {
     if (scanMs) {
       sendMsFrame(id, ff);
-    } else if (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO) {
+    } else if (BODY_BUS_TEST ||
+               (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO)) {
       // Leave the needle/temperature frames alone so the gauges stay sane.
       sendFrame(id, ff);
     }
@@ -174,8 +180,10 @@ bool hasCustomFrame(uint16_t id) {
 }
 
 // Built-in frames step aside when a custom frame with the same ID is active,
-// so the cluster only ever sees one version of that ID.
+// so the cluster only ever sees one version of that ID. In the body bus test
+// they're off entirely, so they can't mask a scan or custom frame.
 void sendBuiltIn(uint16_t id, const uint8_t *data) {
+  if (BODY_BUS_TEST) return;
   if (!hasCustomFrame(id)) sendFrame(id, data);
 }
 
@@ -299,7 +307,7 @@ void handleCommand(const char *cmd) {
     if (scanning) {
       scanning = false;
       DEBUG_PORT.print(F("scan stopped at "));
-      DEBUG_PORT.print(scanMs ? F("MS 0x") : F("HS 0x"));
+      DEBUG_PORT.print(scanMs ? F("MS 0x") : F(MAIN_BUS_LABEL));
       DEBUG_PORT.print(scanBase, HEX);
       DEBUG_PORT.println(F(" - #scan resume to continue"));
     } else {
@@ -417,6 +425,9 @@ void setup() {
     delay(500);
   }
   DEBUG_PORT.println(F("CAN ready - ATS Mazda 3 cluster bridge"));
+#if BODY_BUS_TEST
+  DEBUG_PORT.println(F("BODY BUS TEST: 125 kbit/s, gauge frames off - use #scan h"));
+#endif
 
 #if MS_CAN_ENABLED
   // Don't hang here if the module is missing: the gauges still work without it.

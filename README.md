@@ -163,7 +163,17 @@ RX-8/Mazda decodes list for MS-CAN.
 
 #### Reaching the body bus (MS-CAN)
 
-This needs a second MCP2515. Either option works:
+**Try it first with the shield you have.** Set `BODY_BUS_TEST 1` in
+`config.h`, upload, and move the shield's CAN-H/CAN-L wires from cluster
+positions 5/6 to 7 (`1M`, H) / 8 (`1O`, L). The shield then runs at 125 kbit/s
+and the needles stop (their frames are switched off so they can't mask the
+test). The Serial Monitor prints `BODY BUS TEST` at boot. `#scan h` and `#...`
+custom frames now go out on the body bus. Follow
+[Finding the lamp frames](#finding-the-lamp-frames) with `#scan h` in place of
+`#scan m`. Set it back to `0` and move the wires back afterwards.
+
+To drive the gauges and the body bus at the same time, you need a second
+MCP2515. Either option works:
 
 **A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
 `MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
