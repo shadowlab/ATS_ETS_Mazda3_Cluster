@@ -156,10 +156,79 @@ HS-CAN L. Don't put a transistor or 12 V on `1K`, because it will take down the
 CAN bus.
 
 The cluster gets those lamp states over CAN, most likely the MS-CAN body bus
-on `1M`/`1O`. This firmware only drives HS-CAN, so the `L`, `Y` and `H` fields
-do nothing until the right frames are found. Try candidate frames on HS-CAN
-with the `#` command first. If they turn out to be MS-CAN only, that needs a
-second MCP2515 module at 125 kbit/s.
+on `1M`/`1O` (plug positions 7/8). The `L`, `Y` and `H` fields do nothing until
+the right frames are found. On a bench-tested 2005 cluster, nothing in `0x433`
+on HS-CAN lit them, including the high beam bit (byte 3, `0x40`) that community
+RX-8/Mazda decodes list for MS-CAN.
+
+#### Reaching the body bus (MS-CAN)
+
+**Try it first with the shield you have.** Set `BODY_BUS_TEST 1` in
+`config.h`, upload, and move the shield's CAN-H/CAN-L wires from cluster
+positions 5/6 to 7 (`1M`, H) / 8 (`1O`, L). The shield then runs at 125 kbit/s
+and the needles stop (their frames are switched off so they can't mask the
+test). The Serial Monitor prints `BODY BUS TEST` at boot. `#scan h` and `#...`
+custom frames now go out on the body bus. Follow
+[Finding the lamp frames](#finding-the-lamp-frames) with `#scan h` in place of
+`#scan m`. Set it back to `0` and move the wires back afterwards.
+
+To drive the gauges and the body bus at the same time, you need a second
+MCP2515. Either option works:
+
+**A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
+`MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
+
+- **Chip select:** the two shields can't share D9. Move the second shield's
+  chip select to **D10** with the CS selection pads on its board (cut the D9
+  link and bridge D10).
+- **SPI:** the shields take SPI from the Mega's 6-pin ICSP header. Check that
+  the lower shield passes the ICSP header up to the top one. If it doesn't,
+  wire the top shield's ICSP pins to D50 (MISO), D51 (MOSI) and D52 (SCK).
+- **Interrupt pin:** both shields drive D2 as their interrupt output, and two
+  outputs on one pin fight each other. The firmware doesn't use it, so bend out
+  or cut the top shield's D2 pin.
+- **Old jumpers:** remove any jumper wires on D10–D13 or D48–D51 from earlier,
+  because D10 is now a chip select.
+- **Termination:** keep the second shield's 120 Ω termination fitted, since the
+  body bus has no other nodes on the bench.
+- Wire the second shield's CAN-H/CAN-L to cluster positions 7 (`1M`) / 8 (`1O`).
+
+**Or a loose MCP2515 module**, such as the common blue board with a TJA1050
+transceiver:
+
+| Module pin | Mega pin |
+|---|---|
+| VCC | 5V |
+| GND | GND |
+| SCK | D52 |
+| SI | D51 |
+| SO | D50 |
+| CS | D53 (set `MS_CAN_CS_PIN 53`) |
+| INT | not needed |
+| CAN-H / CAN-L | cluster positions 7 (`1M`) / 8 (`1O`) |
+
+Check the crystal on the module: most read `8.000` (set `MS_CAN_CLOCK
+MCP_8MHz`), and some read `16.000` (`MCP_16MHz`).
+
+Either way, set `MS_CAN_ENABLED 1` in `config.h`.
+At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
+the module isn't answering. The gauges keep working either way. Fit the
+module's 120 Ω termination jumper if it has one, since the body bus has no other
+nodes on the bench.
+
+#### Finding the lamp frames
+
+1. Type `#scan m` in the Serial Monitor (or `#scan h` to search the main bus).
+   The board sends all-`0xFF` frames on 16 IDs at a time, two seconds per block,
+   and prints each block, such as `scan MS 0x430-0x43F`. It takes about four
+   minutes to cover every ID.
+2. Note the block that lights a turn arrow or the high beam, then type `#scan`
+   to stop. It prints where it stopped, for example
+   `scan stopped at HS 0x4D0`. Type `#scan resume` to carry on from that
+   block, or `#scan h 4D0` (or `#scan m 4D0`) to start from any ID.
+3. Narrow it down with custom frames, for example `#m433 FF FF FF FF FF FF FF FF`
+   for one ID, then one byte at a time, then one bit.
+4. Add the confirmed ID, byte and bit to `mazda3_can.h`.
 
 The GPIO lamp outputs are still in the firmware, off by default
 (`PIN_LEFT_TURN`, `PIN_RIGHT_TURN`, `PIN_HIGH_BEAM` are `-1` in `config.h`), for
@@ -335,10 +404,17 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 |---|---|
 | `#420 82 40 00 00 01 00 00 00` | Send this frame every 100 ms (hex). If the ID is a built-in one, the built-in frame stops until you remove the custom one. |
 | `#420` | Stop sending custom frame `0x420` |
-| `#-` | Remove all custom frames |
+| `#m433 00 00 00 40 00 00 00 00` | The same, on the body bus (MS-CAN). Needs the second module (`MS_CAN_ENABLED 1`). |
+| `#-` | Remove all custom frames and stop a scan |
 | `#?` | List custom frames |
+| `#scan m` / `#scan h` | Scan every ID on MS-CAN / HS-CAN with all-`0xFF` frames, 16 IDs every 2 s (see [Finding the lamp frames](#finding-the-lamp-frames)) |
+| `#scan h 4D0` / `#scan m 4D0` | Start a scan at ID `0x4D0` and carry on up from there (`hs`/`ms` and a `0x` prefix also work) |
+| `#scan` | Stop a scan and print the block it stopped at |
+| `#scan resume` | Carry on from the block where the last scan stopped |
 
-Up to 8 custom frames can be active. They're lost on reset. Once you've found a
+Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
+If nothing comes back, check that the Serial Monitor's line ending is set to
+**Newline**. Up to 8 custom frames can be active. They're lost on reset. Once you've found a
 frame that works, add it to `mazda3_can.h` permanently.
 
 ## Known limitations

@@ -41,6 +41,23 @@
 // The 2004-2009 (BK) Mazda 3 cluster sits on the 500 kbit/s high-speed bus.
 #define CAN_SPEED CAN_500KBPS
 
+// ------------------------------------------ Optional second CAN module (MS-CAN)
+// The cluster also sits on the 125 kbit/s body bus (MS-CAN, cluster pins 1M/1O,
+// plug positions 7/8). The turn signal and high beam lamps are most likely
+// driven from there. To reach it, add a second MCP2515: either a second Seeed
+// CAN-BUS shield stacked on the first with its CS moved to D10, or a loose
+// MCP2515 module wired to the SPI pins (see README). Its CAN-H/CAN-L go to
+// positions 7/8.
+// With it fitted, `#m...` serial commands send custom frames on this bus and
+// `#scan m` searches it (see README).
+#define MS_CAN_ENABLED 0
+// Second Seeed shield: D10. Loose module: any free pin, e.g. D53.
+#define MS_CAN_CS_PIN  10
+// Seeed shields have a 16 MHz crystal. Most blue MCP2515 modules have 8 MHz
+// (the can on the board reads "8.000"): use MCP_8MHz for those.
+#define MS_CAN_CLOCK   MCP_16MHz
+#define MS_CAN_SPEED   CAN_125KBPS
+
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
 #define SWEEP_MAX_RPM 8000
@@ -98,3 +115,18 @@
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
+
+// --------------------------------------------- Body bus test (single shield)
+// Set to 1 to try the body bus (MS-CAN) with the one shield you already have:
+// move the shield's CAN-H/CAN-L wires from cluster positions 5/6 to 7/8. The
+// shield then runs at 125 kbit/s, the boot sweep and all the gauge frames are
+// switched off (the needles won't move), and `#scan h` and `#...` custom frames
+// go out on the body bus. Set back to 0 and move the wires back afterwards.
+#define BODY_BUS_TEST 0
+
+#if BODY_BUS_TEST
+#undef CAN_SPEED
+#define CAN_SPEED CAN_125KBPS
+#undef SWEEP_ON_BOOT
+#define SWEEP_ON_BOOT 0
+#endif
