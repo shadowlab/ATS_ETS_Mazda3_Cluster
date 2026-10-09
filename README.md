@@ -163,7 +163,27 @@ RX-8/Mazda decodes list for MS-CAN.
 
 #### Reaching the body bus (MS-CAN)
 
-Add a second MCP2515 module, such as the common blue board with a TJA1050
+This needs a second MCP2515. Either option works:
+
+**A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
+`MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
+
+- **Chip select:** the two shields can't share D9. Move the second shield's
+  chip select to **D10** with the CS selection pads on its board (cut the D9
+  link and bridge D10).
+- **SPI:** the shields take SPI from the Mega's 6-pin ICSP header. Check that
+  the lower shield passes the ICSP header up to the top one. If it doesn't,
+  wire the top shield's ICSP pins to D50 (MISO), D51 (MOSI) and D52 (SCK).
+- **Interrupt pin:** both shields drive D2 as their interrupt output, and two
+  outputs on one pin fight each other. The firmware doesn't use it, so bend out
+  or cut the top shield's D2 pin.
+- **Old jumpers:** remove any jumper wires on D10–D13 or D48–D51 from earlier,
+  because D10 is now a chip select.
+- **Termination:** keep the second shield's 120 Ω termination fitted, since the
+  body bus has no other nodes on the bench.
+- Wire the second shield's CAN-H/CAN-L to cluster positions 7 (`1M`) / 8 (`1O`).
+
+**Or a loose MCP2515 module**, such as the common blue board with a TJA1050
 transceiver:
 
 | Module pin | Mega pin |
@@ -173,12 +193,14 @@ transceiver:
 | SCK | D52 |
 | SI | D51 |
 | SO | D50 |
-| CS | D53 (`MS_CAN_CS_PIN`) |
+| CS | D53 (set `MS_CAN_CS_PIN 53`) |
 | INT | not needed |
 | CAN-H / CAN-L | cluster positions 7 (`1M`) / 8 (`1O`) |
 
-Then set `MS_CAN_ENABLED 1` in `config.h`. Check the crystal on the module: most
-read `8.000` (`MS_CAN_CLOCK MCP_8MHz`), and some read `16.000` (`MCP_16MHz`).
+Check the crystal on the module: most read `8.000` (set `MS_CAN_CLOCK
+MCP_8MHz`), and some read `16.000` (`MCP_16MHz`).
+
+Either way, set `MS_CAN_ENABLED 1` in `config.h`.
 At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
 the module isn't answering. The gauges keep working either way. Fit the
 module's 120 Ω termination jumper if it has one, since the body bus has no other

@@ -44,16 +44,18 @@
 // ------------------------------------------ Optional second CAN module (MS-CAN)
 // The cluster also sits on the 125 kbit/s body bus (MS-CAN, cluster pins 1M/1O,
 // plug positions 7/8). The turn signal and high beam lamps are most likely
-// driven from there. To reach it, add a second MCP2515 module (the common blue
-// board with a TJA1050 transceiver): VCC 5V, GND, SCK D52, SI D51, SO D50, and
-// CS on the pin below. Its CAN-H/CAN-L go to positions 7/8.
+// driven from there. To reach it, add a second MCP2515: either a second Seeed
+// CAN-BUS shield stacked on the first with its CS moved to D10, or a loose
+// MCP2515 module wired to the SPI pins (see README). Its CAN-H/CAN-L go to
+// positions 7/8.
 // With it fitted, `#m...` serial commands send custom frames on this bus and
 // `#scan m` searches it (see README).
 #define MS_CAN_ENABLED 0
-#define MS_CAN_CS_PIN  53
-// Most blue MCP2515 modules have an 8 MHz crystal (the can on the board reads
-// "8.000"). Use MCP_16MHz if yours reads 16.000.
-#define MS_CAN_CLOCK   MCP_8MHz
+// Second Seeed shield: D10. Loose module: any free pin, e.g. D53.
+#define MS_CAN_CS_PIN  10
+// Seeed shields have a 16 MHz crystal. Most blue MCP2515 modules have 8 MHz
+// (the can on the board reads "8.000"): use MCP_8MHz for those.
+#define MS_CAN_CLOCK   MCP_16MHz
 #define MS_CAN_SPEED   CAN_125KBPS
 
 // Sweep all needles to full scale and back when the board powers up.
