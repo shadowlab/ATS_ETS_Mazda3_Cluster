@@ -33,6 +33,9 @@ const uint16_t ID_TRANSMISSION = 0x228;
 // own HS 0x433 above.
 const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
 const uint16_t ID_TURN_LAMPS  = 0x265;  // turn signal arrows
+// Bench-tested on a 2005 cluster: the SRS airbag lamp is on until MS 0x460 is
+// heard, and all-zero data turns it off. Stands in for the airbag module.
+const uint16_t ID_AIRBAG      = 0x460;
 
 // ------------------------------------------------------- Calibration
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).

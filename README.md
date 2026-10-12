@@ -420,6 +420,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x228` | 100 ms | 0 | Gear display: `1` P, `2` R, `3` N, `4` D, `0` none. Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 1–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
+| MS `0x460` | 100 ms | all | `0x00`: stands in for the airbag module so the SRS lamp goes out. Body bus only, as above |
 | MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |
 
 The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
