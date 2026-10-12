@@ -120,6 +120,42 @@ static void testBodyLampsFrame() {
   }
 }
 
+static void testTurnLampsFrame() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildTurnLamps(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.leftTurn = true;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x20);
+  s.rightTurn = true;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x60);
+  s.leftTurn = false;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x40);
+  for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
+}
+
+static void testTurnBlinker() {
+  mazda3::TurnBlinker t = {};
+  CHECK(!t.update(false, 1000, 333));
+  // Steady input: on for the first half period, off for the next, on again.
+  CHECK(t.update(true, 1000, 333));
+  CHECK(t.update(true, 1332, 333));
+  CHECK(!t.update(true, 1333, 333));
+  CHECK(!t.update(true, 1665, 333));
+  CHECK(t.update(true, 1666, 333));
+  // Input off: lamp off straight away.
+  CHECK(!t.update(false, 1700, 333));
+  // A new rising edge restarts the phase (follows a game that blinks itself).
+  CHECK(t.update(true, 1900, 333));
+  // Half period 0: lamp just follows the input.
+  mazda3::TurnBlinker solid = {};
+  CHECK(solid.update(true, 0, 0));
+  CHECK(solid.update(true, 5000, 0));
+}
+
 static void testFuelLevelFrame() {
   mazda3::ClusterState s = {};
   uint8_t b[8];
@@ -194,6 +230,8 @@ int main() {
   testFuelLevelFrame();
   testBrakeLampsFrame();
   testBodyLampsFrame();
+  testTurnLampsFrame();
+  testTurnBlinker();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

@@ -29,6 +29,9 @@ mcp2515_can MSCAN(MS_CAN_CS_PIN);
 TelemetryParser parser;
 mazda3::ClusterState cluster;
 
+mazda3::TurnBlinker leftBlinker = {};
+mazda3::TurnBlinker rightBlinker = {};
+
 unsigned long lastTelemetryMs = 0;
 bool telemetryLive = false;
 
@@ -174,6 +177,9 @@ void applyTelemetry() {
   cluster.oilWarning = parser.value('O') >= 0.5f;
   cluster.parkingBrake = parser.value('P') >= 0.5f;
   cluster.highBeam = parser.value('H') >= 0.5f;
+  unsigned long now = millis();
+  cluster.leftTurn = leftBlinker.update(parser.value('L') >= 0.5f, now, TURN_BLINK_HALF_MS);
+  cluster.rightTurn = rightBlinker.update(parser.value('Y') >= 0.5f, now, TURN_BLINK_HALF_MS);
 
   setIndicator(PIN_LEFT_TURN, parser.value('L') >= 0.5f);
   setIndicator(PIN_RIGHT_TURN, parser.value('Y') >= 0.5f);
@@ -191,6 +197,8 @@ void applyIdle() {
   cluster.oilWarning = false;
   cluster.parkingBrake = false;
   cluster.highBeam = false;
+  cluster.leftTurn = leftBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
+  cluster.rightTurn = rightBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
   // Leave coolant and fuel where they were so those gauges don't plunge when
   // you pause.
 
@@ -237,6 +245,9 @@ void sendClusterFrames(unsigned long now) {
     sendBuiltIn(mazda3::ID_RPM_SPEED, buf);
     mazda3::buildWheelSpeed(cluster, buf);
     sendBuiltIn(mazda3::ID_WHEEL_SPEED, buf);
+    // With the fast frames so the flashing stays even.
+    mazda3::buildTurnLamps(cluster, buf);
+    sendBodyFrame(mazda3::ID_TURN_LAMPS, buf);
   }
 
   if (now - lastSlowMs >= SLOW_PERIOD_MS) {

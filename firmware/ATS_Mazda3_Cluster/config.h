@@ -116,6 +116,12 @@
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
 
+// Turn arrows are sent over the body bus (MS-CAN 0x265), and the cluster holds
+// them solid, so the firmware flashes them: on for this long, off for this
+// long (333 ms is about 1.5 flashes a second). If your game output already
+// blinks, the lamp follows its timing anyway. 0 = show the input as-is.
+#define TURN_BLINK_HALF_MS 333
+
 // --------------------------------------------- Body bus test (single shield)
 // Set to 1 to try the body bus (MS-CAN) with the one shield you already have:
 // move the shield's CAN-H/CAN-L wires from cluster positions 5/6 to 7/8. The

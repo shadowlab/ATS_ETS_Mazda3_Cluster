@@ -25,6 +25,7 @@ const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 // Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Same number as ID_FUEL_LEVEL
 // but a different bus, so they don't clash.
 const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
+const uint16_t ID_TURN_LAMPS  = 0x265;  // turn signal arrows
 
 // ------------------------------------------------------- Calibration
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).
@@ -44,6 +45,11 @@ const uint8_t BRAKE_B4_PARKING_BRAKE = 0x40;  // 0x212 byte 4
 // Bench-tested on a 2005 cluster: MS-CAN 0x433 byte 3 = 0x40 lights the
 // high beam indicator.
 const uint8_t BODY_B3_HIGH_BEAM      = 0x40;  // MS 0x433 byte 3
+// Bench-tested on a 2005 cluster: MS-CAN 0x265 byte 0 lights the arrows
+// (0x10 is the immobilizer lamp, not used). The cluster shows them solid while
+// the bit is set, so the flashing comes from TurnBlinker below.
+const uint8_t TURN_B0_LEFT           = 0x20;  // MS 0x265 byte 0
+const uint8_t TURN_B0_RIGHT          = 0x40;  // MS 0x265 byte 0
 
 // ------------------------------------------------------- Cluster state
 struct ClusterState {
@@ -57,6 +63,25 @@ struct ClusterState {
   bool oilWarning;
   bool parkingBrake;
   bool highBeam;
+  bool leftTurn;   // arrow lit right now (already blinked)
+  bool rightTurn;
+};
+
+// Turns a turn-signal input into a flashing lamp. The cluster holds an arrow
+// solid while its bit is set, so a steady "signal on" from the game is
+// flashed here. A game that already sends the blink still works: each new
+// rising edge restarts the phase, so the lamp follows the game's own timing.
+struct TurnBlinker {
+  bool wasOn;
+  uint32_t onSinceMs;
+
+  bool update(bool on, uint32_t nowMs, uint32_t halfPeriodMs) {
+    if (on && !wasOn) onSinceMs = nowMs;
+    wasOn = on;
+    if (!on) return false;
+    if (halfPeriodMs == 0) return true;
+    return ((nowMs - onSinceMs) / halfPeriodMs) % 2 == 0;
+  }
 };
 
 inline uint16_t clampU16(float v) {
@@ -134,6 +159,13 @@ inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
 inline void buildBodyLamps(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[3] = s.highBeam ? BODY_B3_HIGH_BEAM : 0;
+}
+
+// MS 0x265: [turn arrow bits][00][00][00][00][00][00][00]
+inline void buildTurnLamps(const ClusterState &s, uint8_t out[8]) {
+  for (int i = 0; i < 8; i++) out[i] = 0;
+  if (s.leftTurn) out[0] |= TURN_B0_LEFT;
+  if (s.rightTurn) out[0] |= TURN_B0_RIGHT;
 }
 
 }  // namespace mazda3
