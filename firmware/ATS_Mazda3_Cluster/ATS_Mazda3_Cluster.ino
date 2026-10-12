@@ -424,6 +424,13 @@ void pollReceive(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *label
   }
 }
 
+void pollAllReceive() {
+  pollReceive(CAN, mainStats, F(MAIN_BUS_LABEL));
+#if MS_CAN_ENABLED
+  pollReceive(MSCAN, msStats, F("MS 0x"));
+#endif
+}
+
 // `#stat`: one bus's counts and a plain verdict on the wiring.
 void printBusStats(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *name) {
   uint8_t eflg = 0;
@@ -649,11 +656,7 @@ void bootSweep() {
     cluster.rpm = k * SWEEP_MAX_RPM;
     cluster.speedKmh = k * SWEEP_MAX_KMH;
     sendClusterFrames(now);
-
-  pollReceive(CAN, mainStats, F(MAIN_BUS_LABEL));
-#if MS_CAN_ENABLED
-  pollReceive(MSCAN, msStats, F("MS 0x"));
-#endif
+    pollAllReceive();
   }
   cluster.rpm = 0;
   cluster.speedKmh = 0;
@@ -738,6 +741,7 @@ void loop() {
   }
 
   sendClusterFrames(now);
+  pollAllReceive();
 
 #if DEBUG_STATUS
   static unsigned long lastStatusMs = 0;
