@@ -220,6 +220,7 @@ function log(text) {
 
 // ------------------------------------------------------------ serial
 let port = null, writer = null, reader = null, writing = false, timer = null;
+let heard = false, quietTimer = null;
 const startMs = performance.now();
 
 if (!("serial" in navigator)) {
@@ -243,10 +244,28 @@ async function connect() {
   writer = enc.writable.getWriter();
   $("connect").textContent = "Disconnect";
   $("connect").classList.remove("primary");
-  $("status").textContent = "connected (board restarting...)";
-  $("status").classList.add("live");
-  timer = setInterval(sendPacket, SEND_PERIOD_MS);
+  setStatus("connected, waiting for the board...", true);
+  heard = false;
   readLoop(port);
+  // Pulse DTR like the Arduino IDE does, so the board restarts and prints its
+  // startup lines (some USB adapters don't reset on open by themselves).
+  try {
+    await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+    await new Promise(r => setTimeout(r, 100));
+    await port.setSignals({ dataTerminalReady: true, requestToSend: true });
+  } catch {}
+  timer = setInterval(sendPacket, SEND_PERIOD_MS);
+  quietTimer = setTimeout(() => {
+    if (port && !heard) {
+      setStatus("connected, but no reply from the board yet", true);
+      log("No output from the board yet. Check it's the Mega's port, and that the sketch is uploaded. Try Bus health.\n");
+    }
+  }, 5000);
+}
+
+function setStatus(text, live) {
+  $("status").textContent = text;
+  $("status").classList.toggle("live", live);
 }
 
 async function readLoop(p) {
@@ -257,7 +276,10 @@ async function readLoop(p) {
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
-      if (value) log(value.replace(/\r/g, ""));
+      if (value) {
+        if (!heard) { heard = true; setStatus("connected, board is talking", true); }
+        log(value.replace(/\r/g, ""));
+      }
     }
   } catch (e) {
     if (port) log(`\nread stopped: ${e.message}\n`);
@@ -266,6 +288,7 @@ async function readLoop(p) {
 
 async function disconnect() {
   clearInterval(timer);
+  clearTimeout(quietTimer);
   const p = port;
   port = null;
   try { await reader?.cancel(); } catch {}
@@ -274,8 +297,7 @@ async function disconnect() {
   reader = writer = null;
   $("connect").textContent = "Connect";
   $("connect").classList.add("primary");
-  $("status").textContent = "not connected";
-  $("status").classList.remove("live");
+  setStatus("not connected", false);
 }
 
 async function write(text) {
