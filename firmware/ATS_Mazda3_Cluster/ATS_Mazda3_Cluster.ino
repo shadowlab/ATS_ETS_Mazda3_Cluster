@@ -52,14 +52,40 @@ const uint8_t MAX_CUSTOM_FRAMES = 8;
 CustomFrame customFrames[MAX_CUSTOM_FRAMES];
 uint8_t customCount = 0;
 
+// ------------------------------------------------------------ Bus health
+// Counts what happens to our frames so `#stat` can tell whether the cluster is
+// on the wire. CAN needs a second node to acknowledge every frame; with no
+// acknowledgement the MCP2515 keeps retrying, its transmit error count climbs
+// and it goes "error passive". So a clean error flag while frames are going
+// out means the cluster is answering at this bitrate, whatever the IDs mean.
+const uint8_t MAX_RX_IDS = 16;
+struct BusStats {
+  unsigned long sent;    // handed to the controller
+  unsigned long slow;    // still retrying when the library stopped waiting
+  unsigned long stuck;   // all three transmit buffers full (nothing getting out)
+  unsigned long rxFrames;
+  uint16_t rxIds[MAX_RX_IDS];  // first IDs heard from the cluster
+  uint8_t rxIdCount;
+};
+BusStats mainStats = {};
+#if MS_CAN_ENABLED
+BusStats msStats = {};
+#endif
+
+void recordSend(BusStats &s, byte rc) {
+  if (rc == CAN_OK) s.sent++;
+  else if (rc == CAN_SENDMSGTIMEOUT) s.slow++;
+  else s.stuck++;
+}
+
 // ---------------------------------------------------------------- Helpers
 void sendFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
-  CAN.sendMsgBuf(id, 0, len, data);
+  recordSend(mainStats, CAN.sendMsgBuf(id, 0, len, data));
 }
 
 void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
 #if MS_CAN_ENABLED
-  MSCAN.sendMsgBuf(id, 0, len, data);
+  recordSend(msStats, MSCAN.sendMsgBuf(id, 0, len, data));
 #else
   (void)id;
   (void)data;
@@ -228,6 +254,7 @@ void sendClusterFrames(unsigned long now) {
 //   #scan h 4D0                    scan HS-CAN starting at 0x4D0
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
+//   #stat                          bus health: is the cluster acknowledging?
 // A custom frame with a built-in ID (0x201/0x212/0x420/0x433/0x4B0) replaces
 // that built-in frame until it is removed.
 
@@ -258,11 +285,82 @@ void printFrame(const CustomFrame &f) {
   DEBUG_PORT.println();
 }
 
+// Reads whatever the cluster sends so the receive buffers never fill, and
+// prints each new ID the first time it is heard. Any frame from the cluster
+// proves the wiring and bitrate on its own.
+void pollReceive(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *label) {
+  while (bus.checkReceive() == CAN_MSGAVAIL) {
+    unsigned long id = 0;
+    byte len = 0;
+    byte buf[8];
+    bus.readMsgBufID(&id, &len, buf);
+    s.rxFrames++;
+    bool known = false;
+    for (uint8_t i = 0; i < s.rxIdCount; i++) known |= (s.rxIds[i] == id);
+    if (known || s.rxIdCount >= MAX_RX_IDS) continue;
+    s.rxIds[s.rxIdCount++] = id;
+    DEBUG_PORT.print(F("heard "));
+    DEBUG_PORT.print(label);
+    DEBUG_PORT.print(id, HEX);
+    for (uint8_t i = 0; i < len && i < 8; i++) {
+      DEBUG_PORT.print(' ');
+      if (buf[i] < 0x10) DEBUG_PORT.print('0');
+      DEBUG_PORT.print(buf[i], HEX);
+    }
+    DEBUG_PORT.println();
+  }
+}
+
+// `#stat`: one bus's counts and a plain verdict on the wiring.
+void printBusStats(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *name) {
+  uint8_t eflg = 0;
+  bus.checkError(&eflg);
+  DEBUG_PORT.print(name);
+  DEBUG_PORT.print(F(": sent "));
+  DEBUG_PORT.print(s.sent);
+  DEBUG_PORT.print(F(", slow "));
+  DEBUG_PORT.print(s.slow);
+  DEBUG_PORT.print(F(", stuck "));
+  DEBUG_PORT.print(s.stuck);
+  DEBUG_PORT.print(F(", heard "));
+  DEBUG_PORT.print(s.rxFrames);
+  DEBUG_PORT.print(F(" frames / "));
+  DEBUG_PORT.print(s.rxIdCount);
+  DEBUG_PORT.print(F(" IDs, EFLG 0x"));
+  DEBUG_PORT.println(eflg, HEX);
+
+  DEBUG_PORT.print(F("  -> "));
+  if (eflg & (MCP_EFLG_TXBO | MCP_EFLG_TXEP) || (s.stuck > 0 && s.sent == 0)) {
+    DEBUG_PORT.println(F("NOT acknowledged: nothing on the wire is answering. Check H/L aren't swapped, the right pins, ignition 12 V, and the bitrate"));
+  } else if (eflg & MCP_EFLG_TXWAR) {
+    DEBUG_PORT.println(F("acknowledged with lots of errors: loose wire, missing ground or termination"));
+  } else if (s.rxFrames > 0 || s.sent > 0) {
+    DEBUG_PORT.println(F("OK: the cluster is acknowledging at this bitrate"));
+  } else {
+    DEBUG_PORT.println(F("nothing sent yet - add a frame (e.g. #7FF 00) and try again"));
+  }
+}
+
+void printStats() {
+#if BODY_BUS_TEST
+  printBusStats(CAN, mainStats, F("MS-CAN (main shield, 125k)"));
+#else
+  printBusStats(CAN, mainStats, F("HS-CAN (500k)"));
+#endif
+#if MS_CAN_ENABLED
+  printBusStats(MSCAN, msStats, F("MS-CAN (second shield, 125k)"));
+#endif
+}
+
 void handleCommand(const char *cmd) {
   if (cmd[0] == '-') {
     customCount = 0;
     scanning = false;
     DEBUG_PORT.println(F("custom frames cleared"));
+    return;
+  }
+  if (strncmp(cmd, "stat", 4) == 0) {
+    printStats();
     return;
   }
   if (strncmp(cmd, "scan", 4) == 0) {
@@ -381,6 +479,11 @@ void bootSweep() {
     cluster.rpm = k * SWEEP_MAX_RPM;
     cluster.speedKmh = k * SWEEP_MAX_KMH;
     sendClusterFrames(now);
+
+  pollReceive(CAN, mainStats, F(MAIN_BUS_LABEL));
+#if MS_CAN_ENABLED
+  pollReceive(MSCAN, msStats, F("MS 0x"));
+#endif
   }
   cluster.rpm = 0;
   cluster.speedKmh = 0;

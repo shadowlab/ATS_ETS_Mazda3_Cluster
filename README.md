@@ -172,6 +172,25 @@ custom frames now go out on the body bus. Follow
 [Finding the lamp frames](#finding-the-lamp-frames) with `#scan h` in place of
 `#scan m`. Set it back to `0` and move the wires back afterwards.
 
+**Check the wiring before scanning.** No body-bus ID is published for this
+cluster, so the check doesn't rely on one. CAN makes the receiving node
+acknowledge every frame, whatever its ID. With no acknowledgement the shield
+keeps retrying and flags an error. So send any harmless frame, then ask for the
+bus health:
+
+```
+#7FF 00
+#stat
+```
+
+`OK: the cluster is acknowledging at this bitrate` means the wires are on the
+body bus and the cluster is talking at 125 kbit/s. `NOT acknowledged` means
+nothing answered: check H/L aren't swapped, the positions, ignition 12 V on
+position 4, and that `BODY_BUS_TEST` really is `1`. If the cluster sends frames
+of its own, they print as `heard MS (main shield) 0x...` when first seen, which
+proves the link too. Remove the test frame with `#7FF` afterwards. The same
+check works on the gauge bus with the normal settings (`HS-CAN (500k)`).
+
 To drive the gauges and the body bus at the same time, you need a second
 MCP2515. Either option works:
 
@@ -411,6 +430,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#scan h 4D0` / `#scan m 4D0` | Start a scan at ID `0x4D0` and carry on up from there (`hs`/`ms` and a `0x` prefix also work) |
 | `#scan` | Stop a scan and print the block it stopped at |
 | `#scan resume` | Carry on from the block where the last scan stopped |
+| `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
 If nothing comes back, check that the Serial Monitor's line ending is set to
