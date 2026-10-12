@@ -81,6 +81,8 @@
     <h1>Mazda 3 cluster tester</h1>
     <button id="connect" class="primary">Connect</button>
     <span id="status" class="status">not connected</span>
+    <label class="check"><input type="checkbox" id="pause"> Pause sending</label>
+    <span id="counters" class="status"></span>
   </section>
   <p id="unsupported" class="warn" hidden>
     This browser can't open serial ports. Open this file in Chrome or Edge.
@@ -142,7 +144,7 @@ const QUICK = [
 ];
 const SEND_PERIOD_MS = 25;
 
-const state = { values: {}, lamps: {}, gear: null, sweep: false };
+const state = { values: {}, lamps: {}, gear: null, sweep: false, paused: false };
 
 function buildPacket(values, lamps, gear) {
   let s = "";
@@ -199,6 +201,7 @@ for (const [name, cmd] of QUICK) {
 }
 
 $("sweep").addEventListener("change", e => { state.sweep = e.target.checked; });
+$("pause").addEventListener("change", e => { state.paused = e.target.checked; });
 $("hazards").addEventListener("click", () => {
   const on = !(state.lamps.L && state.lamps.Y);
   for (const k of ["L", "Y"]) { state.lamps[k] = on; $("lamp" + k).checked = on; }
@@ -223,6 +226,14 @@ let port = null, writer = null, reader = null, writing = false, timer = null;
 let heard = false, quietTimer = null, bootTimer = null;
 const BOOT_WAIT_MS = 4000;
 const encoder = new TextEncoder();
+// Live counters in the header, to show where traffic stops if it does.
+const stats = { rxBytes: 0, packets: 0, skipped: 0 };
+setInterval(() => {
+  $("counters").textContent = port
+    ? `received ${stats.rxBytes} bytes · sent ${stats.packets} packets` +
+      (stats.skipped ? ` · ${stats.skipped} skipped (port busy)` : "") + (writing ? " · write pending" : "")
+    : "";
+}, 500);
 const startMs = performance.now();
 
 if (!("serial" in navigator)) {
@@ -247,6 +258,7 @@ async function connect() {
   $("connect").textContent = "Disconnect";
   $("connect").classList.remove("primary");
   setStatus("connected, board starting up...", true);
+  stats.rxBytes = stats.packets = stats.skipped = 0;
   heard = false;
   readLoop(port);
   // Opening the port restarts the Mega. Its bootloader listens on the port for
@@ -284,6 +296,7 @@ async function readLoop(p) {
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
+        stats.rxBytes += value.length;
         const text = dec.decode(value, { stream: true });
         if (!text) continue;
         errors = 0;
@@ -329,7 +342,8 @@ async function write(text) {
 }
 
 async function sendPacket() {
-  if (writing || !writer) return;  // don't queue up if the port is slow
+  if (!writer || state.paused) return;
+  if (writing) { stats.skipped++; return; }  // don't queue up if the port is slow
   writing = true;
   const values = { ...state.values };
   if (state.sweep) {
@@ -339,6 +353,7 @@ async function sendPacket() {
     values.S = k * 140;
   }
   await write(buildPacket(values, state.lamps, state.gear));
+  stats.packets++;
   writing = false;
 }
 
