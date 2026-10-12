@@ -220,7 +220,54 @@ void applyIdle() {
   setIndicator(PIN_PARK_BRAKE, false);
 }
 
+// ----------------------------------------------------------- Byte sweep
+// `#sweep h 212 4`: sends 0x212 with every byte 0x00 except byte 4, which
+// steps through 0x00-0xFF, one value every SWEEP_STEP_MS, printing each value
+// as it goes out. For lamps that need one particular value rather than all
+// zeros or all 0xFF. `#sweep` stops and prints where it was. The swept frame
+// replaces any built-in or custom frame with the same ID.
+const unsigned long SWEEP_STEP_MS = 400;
+bool sweeping = false;
+bool sweepMs = false;
+uint16_t sweepId = 0;
+uint8_t sweepByte = 0;
+uint8_t sweepValue = 0;
+unsigned long sweepStepStartMs = 0;
+
+void printSweepStep() {
+  DEBUG_PORT.print(F("sweep "));
+  DEBUG_PORT.print(sweepMs ? F("MS 0x") : F(MAIN_BUS_LABEL));
+  DEBUG_PORT.print(sweepId, HEX);
+  DEBUG_PORT.print(F(" byte "));
+  DEBUG_PORT.print(sweepByte);
+  DEBUG_PORT.print(F(" = "));
+  if (sweepValue < 0x10) DEBUG_PORT.print('0');
+  DEBUG_PORT.println(sweepValue, HEX);
+}
+
+void sendSweepFrame(unsigned long now) {
+  if (!sweeping) return;
+  if (now - sweepStepStartMs >= SWEEP_STEP_MS) {
+    sweepStepStartMs = now;
+    if (sweepValue == 0xFF) {
+      sweeping = false;
+      DEBUG_PORT.println(F("sweep done"));
+      return;
+    }
+    sweepValue++;
+    printSweepStep();
+  }
+  uint8_t data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  data[sweepByte] = sweepValue;
+  if (sweepMs) {
+    sendMsFrame(sweepId, data);
+  } else {
+    sendFrame(sweepId, data);
+  }
+}
+
 bool hasCustomFrame(uint16_t id, bool ms = false) {
+  if (sweeping && sweepMs == ms && sweepId == id) return true;
   for (uint8_t i = 0; i < customCount; i++) {
     if (customFrames[i].ms == ms && customFrames[i].id == id) return true;
   }
@@ -283,6 +330,7 @@ void sendClusterFrames(unsigned long now) {
       }
     }
     sendScanFrames(now);
+    sendSweepFrame(now);
   }
 }
 
@@ -298,6 +346,9 @@ void sendClusterFrames(unsigned long now) {
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
 //   #stat                          bus health: is the cluster acknowledging?
+//   #sweep h 212 4                 step byte 4 of 0x212 through 00-FF
+//   #sweep h 212 4 80              same, starting at 0x80
+//   #sweep                         stop a sweep (prints where it stopped)
 // A custom frame with a built-in ID (0x201/0x212/0x228/0x420/0x4B0) replaces
 // that built-in frame until it is removed.
 
@@ -399,7 +450,52 @@ void handleCommand(const char *cmd) {
   if (cmd[0] == '-') {
     customCount = 0;
     scanning = false;
+    sweeping = false;
     DEBUG_PORT.println(F("custom frames cleared"));
+    return;
+  }
+  if (strncmp(cmd, "sweep", 5) == 0) {
+    const char *arg = cmd + 5;
+    while (*arg == ' ') arg++;
+    if (*arg == 0) {
+      if (sweeping) {
+        sweeping = false;
+        DEBUG_PORT.print(F("sweep stopped at "));
+        printSweepStep();
+      } else {
+        DEBUG_PORT.println(F("no sweep running"));
+      }
+      return;
+    }
+    bool ms = (*arg == 'm' || *arg == 'M');
+    if (!ms && *arg != 'h' && *arg != 'H') {
+      DEBUG_PORT.println(F("use #sweep h <id> <byte> or #sweep m <id> <byte>"));
+      return;
+    }
+#if !MS_CAN_ENABLED
+    if (ms) {
+      DEBUG_PORT.println(F("MS-CAN not enabled - set MS_CAN_ENABLED 1 in config.h"));
+      return;
+    }
+#endif
+    arg++;
+    if (*arg == 's' || *arg == 'S') arg++;
+    while (*arg == ' ') arg++;
+    if (arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) arg += 2;
+    long id = nextHex(arg);
+    long byteIdx = nextHex(arg);
+    long start = nextHex(arg);
+    if (id < 0 || id > 0x7FF || byteIdx < 0 || byteIdx > 7 || start > 0xFF) {
+      DEBUG_PORT.println(F("use #sweep h <id 0-7FF> <byte 0-7> [start 00-FF]"));
+      return;
+    }
+    sweepMs = ms;
+    sweepId = (uint16_t)id;
+    sweepByte = (uint8_t)byteIdx;
+    sweepValue = start < 0 ? 0 : (uint8_t)start;
+    sweeping = true;
+    sweepStepStartMs = millis();
+    printSweepStep();
     return;
   }
   if (strncmp(cmd, "stat", 4) == 0) {
