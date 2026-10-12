@@ -450,6 +450,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#scan resume` | Carry on from the block where the last scan stopped |
 | `#sweep h 212 4` / `#sweep m 433 3` | Send that ID with every byte `0x00` except the one given (0–7), which steps through `00`–`FF`, one value every 0.4 s, printing each value. For lamps that need one particular value. Add a start value to begin part-way (`#sweep h 212 4 80`) |
 | `#sweep` | Stop a sweep and print the value it stopped at |
+| `#watch` | Toggle printing the cluster's own frames whenever their data changes (`changed HS 0x190 …`). Useful alongside `#sweep` or `#scan`, since the cluster reports some of its own state |
 | `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).

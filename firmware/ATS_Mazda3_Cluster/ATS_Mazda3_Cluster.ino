@@ -69,8 +69,13 @@ struct BusStats {
   unsigned long stuck;   // all three transmit buffers full (nothing getting out)
   unsigned long rxFrames;
   uint16_t rxIds[MAX_RX_IDS];  // first IDs heard from the cluster
+  uint8_t rxData[MAX_RX_IDS][8];  // and the last data seen on each
   uint8_t rxIdCount;
 };
+// `#watch`: also print a cluster frame whenever its data changes. The cluster
+// reports some of its own state (e.g. HS 0x190), so a change can show a lamp
+// flipping even when it's hard to see.
+bool watchChanges = false;
 BusStats mainStats = {};
 #if MS_CAN_ENABLED
 BusStats msStats = {};
@@ -346,6 +351,7 @@ void sendClusterFrames(unsigned long now) {
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
 //   #stat                          bus health: is the cluster acknowledging?
+//   #watch                         toggle printing cluster frames when they change
 //   #sweep h 212 4                 step byte 4 of 0x212 through 00-FF
 //   #sweep h 212 4 80              same, starting at 0x80
 //   #sweep                         stop a sweep (prints where it stopped)
@@ -389,14 +395,27 @@ void pollReceive(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *label
     byte buf[8];
     bus.readMsgBufID(&id, &len, buf);
     s.rxFrames++;
-    bool known = false;
-    for (uint8_t i = 0; i < s.rxIdCount; i++) known |= (s.rxIds[i] == id);
-    if (known || s.rxIdCount >= MAX_RX_IDS) continue;
-    s.rxIds[s.rxIdCount++] = id;
-    DEBUG_PORT.print(F("heard "));
+    if (len > 8) len = 8;
+    int8_t slot = -1;
+    for (uint8_t i = 0; i < s.rxIdCount; i++) {
+      if (s.rxIds[i] == id) slot = i;
+    }
+    if (slot >= 0) {
+      // Known ID: print it again only when watching and the data changed.
+      if (!watchChanges || memcmp(s.rxData[slot], buf, len) == 0) continue;
+      memcpy(s.rxData[slot], buf, len);
+      DEBUG_PORT.print(F("changed "));
+    } else {
+      if (s.rxIdCount >= MAX_RX_IDS) continue;
+      slot = s.rxIdCount++;
+      s.rxIds[slot] = id;
+      memset(s.rxData[slot], 0, 8);
+      memcpy(s.rxData[slot], buf, len);
+      DEBUG_PORT.print(F("heard "));
+    }
     DEBUG_PORT.print(label);
     DEBUG_PORT.print(id, HEX);
-    for (uint8_t i = 0; i < len && i < 8; i++) {
+    for (uint8_t i = 0; i < len; i++) {
       DEBUG_PORT.print(' ');
       if (buf[i] < 0x10) DEBUG_PORT.print('0');
       DEBUG_PORT.print(buf[i], HEX);
@@ -496,6 +515,12 @@ void handleCommand(const char *cmd) {
     sweeping = true;
     sweepStepStartMs = millis();
     printSweepStep();
+    return;
+  }
+  if (strncmp(cmd, "watch", 5) == 0) {
+    watchChanges = !watchChanges;
+    DEBUG_PORT.println(watchChanges ? F("watch on: cluster frames print when they change")
+                                    : F("watch off"));
     return;
   }
   if (strncmp(cmd, "stat", 4) == 0) {
