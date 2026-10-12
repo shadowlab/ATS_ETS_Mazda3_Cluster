@@ -213,8 +213,8 @@ $("clearlog").addEventListener("click", () => { $("log").textContent = ""; });
 function log(text) {
   const el = $("log");
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 20;
-  el.textContent += text;
-  if (el.textContent.length > 200000) el.textContent = el.textContent.slice(-150000);
+  el.append(text);  // a new text node: cheap even when the log is long
+  while (el.childNodes.length > 4000) el.firstChild.remove();
   if (atBottom) el.scrollTop = el.scrollHeight;
 }
 
@@ -222,6 +222,7 @@ function log(text) {
 let port = null, writer = null, reader = null, writing = false, timer = null;
 let heard = false, quietTimer = null, bootTimer = null;
 const BOOT_WAIT_MS = 4000;
+const encoder = new TextEncoder();
 const startMs = performance.now();
 
 if (!("serial" in navigator)) {
@@ -234,15 +235,15 @@ $("connect").addEventListener("click", () => (port ? disconnect() : connect()));
 async function connect() {
   try {
     port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
+    // A large receive buffer: Chrome's default (255 bytes) overflows while the
+    // board prints its startup lines, which drops text and stops reading.
+    await port.open({ baudRate: 115200, bufferSize: 65536 });
   } catch (e) {
     port = null;
     if (e.name !== "NotFoundError") log(`couldn't open the port: ${e.message}\n(is the Serial Monitor or SimHub holding it?)\n`);
     return;
   }
-  const enc = new TextEncoderStream();
-  enc.readable.pipeTo(port.writable).catch(() => {});
-  writer = enc.writable.getWriter();
+  writer = port.writable.getWriter();
   $("connect").textContent = "Disconnect";
   $("connect").classList.remove("primary");
   setStatus("connected, board starting up...", true);
@@ -272,22 +273,32 @@ function setStatus(text, live) {
   $("status").classList.toggle("live", live);
 }
 
+// Reads until the port closes. A read error (e.g. a buffer overrun) only
+// loses that chunk: the loop takes a fresh reader and carries on.
 async function readLoop(p) {
-  const dec = new TextDecoderStream();
-  p.readable.pipeTo(dec.writable).catch(() => {});
-  reader = dec.readable.getReader();
-  try {
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (value) {
+  const dec = new TextDecoder();
+  let errors = 0;
+  while (port === p && p.readable) {
+    reader = p.readable.getReader();
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const text = dec.decode(value, { stream: true });
+        if (!text) continue;
+        errors = 0;
         if (!heard) { heard = true; setStatus("connected, board is talking", true); }
-        log(value.replace(/\r/g, ""));
-        if (value.includes("CAN ready")) setTimeout(startStreaming, 300);
+        log(text.replace(/\r/g, ""));
+        if (text.includes("CAN ready")) setTimeout(startStreaming, 300);
       }
+    } catch (e) {
+      if (port === p) log(`\n[read error: ${e.message} - some output was lost]\n`);
+      if (++errors >= 5) { log("[reading stopped - press Disconnect and Connect]\n"); break; }
+      await new Promise(r => setTimeout(r, 50));
+    } finally {
+      try { reader.releaseLock(); } catch {}
     }
-  } catch (e) {
-    if (port) log(`\nread stopped: ${e.message}\n`);
+    if (port !== p) break;
   }
 }
 
@@ -299,7 +310,7 @@ async function disconnect() {
   const p = port;
   port = null;
   try { await reader?.cancel(); } catch {}
-  try { await writer?.close(); } catch {}
+  try { writer?.releaseLock(); } catch {}
   try { await p?.close(); } catch {}
   reader = writer = null;
   $("connect").textContent = "Connect";
@@ -310,7 +321,7 @@ async function disconnect() {
 async function write(text) {
   if (!writer) return;
   try {
-    await writer.write(text);
+    await writer.write(encoder.encode(text));
   } catch (e) {
     log(`\nwrite failed: ${e.message}\n`);
     disconnect();
