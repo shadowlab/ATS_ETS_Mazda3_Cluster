@@ -173,6 +173,7 @@ void applyTelemetry() {
   cluster.chargeWarning = parser.value('B') >= 0.5f;
   cluster.oilWarning = parser.value('O') >= 0.5f;
   cluster.parkingBrake = parser.value('P') >= 0.5f;
+  cluster.highBeam = parser.value('H') >= 0.5f;
 
   setIndicator(PIN_LEFT_TURN, parser.value('L') >= 0.5f);
   setIndicator(PIN_RIGHT_TURN, parser.value('Y') >= 0.5f);
@@ -189,6 +190,7 @@ void applyIdle() {
   cluster.chargeWarning = false;
   cluster.oilWarning = false;
   cluster.parkingBrake = false;
+  cluster.highBeam = false;
   // Leave coolant and fuel where they were so those gauges don't plunge when
   // you pause.
 
@@ -198,11 +200,24 @@ void applyIdle() {
   setIndicator(PIN_PARK_BRAKE, false);
 }
 
-bool hasCustomFrame(uint16_t id) {
+bool hasCustomFrame(uint16_t id, bool ms = false) {
   for (uint8_t i = 0; i < customCount; i++) {
-    if (!customFrames[i].ms && customFrames[i].id == id) return true;
+    if (customFrames[i].ms == ms && customFrames[i].id == id) return true;
   }
   return false;
+}
+
+// Body-bus frames go to the second module, or to the main shield while it is
+// on the body bus for BODY_BUS_TEST. Without either they have nowhere to go.
+void sendBodyFrame(uint16_t id, const uint8_t *data) {
+#if BODY_BUS_TEST
+  if (!hasCustomFrame(id)) sendFrame(id, data);
+#elif MS_CAN_ENABLED
+  if (!hasCustomFrame(id, true)) sendMsFrame(id, data);
+#else
+  (void)id;
+  (void)data;
+#endif
 }
 
 // Built-in frames step aside when a custom frame with the same ID is active,
@@ -232,6 +247,8 @@ void sendClusterFrames(unsigned long now) {
     sendBuiltIn(mazda3::ID_FUEL_LEVEL, buf);
     mazda3::buildBrakeLamps(cluster, buf);
     sendBuiltIn(mazda3::ID_BRAKE_LAMPS, buf);
+    mazda3::buildBodyLamps(cluster, buf);
+    sendBodyFrame(mazda3::ID_BODY_LAMPS, buf);
     for (uint8_t i = 0; i < customCount; i++) {
       const CustomFrame &f = customFrames[i];
       if (f.ms) {

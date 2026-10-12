@@ -124,7 +124,7 @@ the car has a 10 A and a 15 A fuse on these lines.
 | Cluster pin | Wire | Signal | Notes |
 |---|---|---|---|
 | `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
-| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | Not used by this firmware. See [Turn signals and high beam](#turn-signals-and-high-beam) |
+| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | High beam lamp, via a second CAN module. See [Turn signals and high beam](#turn-signals-and-high-beam) |
 | `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
 | `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
 
@@ -155,11 +155,13 @@ them are wrong: `1N` and `1P` are vacant (or the washer sensor), and `1K` is
 HS-CAN L. Don't put a transistor or 12 V on `1K`, because it will take down the
 CAN bus.
 
-The cluster gets those lamp states over CAN, most likely the MS-CAN body bus
-on `1M`/`1O` (plug positions 7/8). The `L`, `Y` and `H` fields do nothing until
-the right frames are found. On a bench-tested 2005 cluster, nothing in `0x433`
-on HS-CAN lit them, including the high beam bit (byte 3, `0x40`) that community
-RX-8/Mazda decodes list for MS-CAN.
+The cluster gets those lamp states over the MS-CAN body bus on `1M`/`1O` (plug
+positions 7/8). On a bench-tested 2005 cluster the high beam lamp is body-bus
+`0x433` byte 3 = `0x40` (the same bit community RX-8/Mazda decodes list), and
+the firmware drives it from the `H` field whenever it can reach the body bus
+(`MS_CAN_ENABLED 1`, or `BODY_BUS_TEST 1`). The turn signal frames haven't been
+found yet, so `L` and `Y` do nothing for now. Nothing in `0x433` on HS-CAN
+lights any of them.
 
 #### Reaching the body bus (MS-CAN)
 
@@ -367,7 +369,7 @@ Each field is an upper-case letter followed by a number, for example
 | `O` | Oil pressure lamp | 0/1 |
 | `L` | Left turn signal | 0/1 (GPIO, off by default; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (GPIO, off by default) |
-| `H` | High beam | 0/1 (GPIO, off by default) |
+| `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
 | `P` | Parking brake | 0/1 |
 
 ### Scaling
@@ -405,6 +407,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | | | 6 | `0x40` = charge lamp |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x433` | 100 ms | 0 | Fuel level: `0x00` (empty) to `0x64` (100, full); bytes 1–7 are `0x00` |
+| MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
 
 The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
 `SPEED_CAN_OFFSET`) and lamp bits are constants at the top of `mazda3_can.h`.

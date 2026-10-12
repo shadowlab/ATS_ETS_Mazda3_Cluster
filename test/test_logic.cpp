@@ -107,6 +107,19 @@ static void testBrakeLampsFrame() {
   }
 }
 
+static void testBodyLampsFrame() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildBodyLamps(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.highBeam = true;
+  mazda3::buildBodyLamps(s, b);
+  CHECK(b[3] == 0x40);
+  for (int i = 0; i < 8; i++) {
+    if (i != 3) CHECK(b[i] == 0);
+  }
+}
+
 static void testFuelLevelFrame() {
   mazda3::ClusterState s = {};
   uint8_t b[8];
@@ -180,6 +193,7 @@ int main() {
   testEngineInfoFrame();
   testFuelLevelFrame();
   testBrakeLampsFrame();
+  testBodyLampsFrame();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

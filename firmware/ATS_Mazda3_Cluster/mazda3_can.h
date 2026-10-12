@@ -22,6 +22,9 @@ const uint16_t ID_ENGINE_INFO = 0x420;  // PCM: coolant temp, odometer, warning 
 const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
 const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
+// Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Same number as ID_FUEL_LEVEL
+// but a different bus, so they don't clash.
+const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
 
 // ------------------------------------------------------- Calibration
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).
@@ -38,6 +41,9 @@ const float SPEED_CAN_OFFSET = 0.0f;
 const uint8_t ENGINE_B1_CHECK_ENGINE = 0x40;  // 0x420 byte 1
 const uint8_t ENGINE_B6_CHARGE       = 0x40;  // 0x420 byte 6 (RX-8 layout)
 const uint8_t BRAKE_B4_PARKING_BRAKE = 0x40;  // 0x212 byte 4
+// Bench-tested on a 2005 cluster: MS-CAN 0x433 byte 3 = 0x40 lights the
+// high beam indicator.
+const uint8_t BODY_B3_HIGH_BEAM      = 0x40;  // MS 0x433 byte 3
 
 // ------------------------------------------------------- Cluster state
 struct ClusterState {
@@ -50,6 +56,7 @@ struct ClusterState {
   bool chargeWarning;
   bool oilWarning;
   bool parkingBrake;
+  bool highBeam;
 };
 
 inline uint16_t clampU16(float v) {
@@ -121,6 +128,12 @@ inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
   float pct = s.fuelPct > 100.0f ? 100.0f : s.fuelPct;
   out[0] = clampU8(pct);
   for (int i = 1; i < 8; i++) out[i] = 0;
+}
+
+// MS 0x433: [00][00][00][high beam bits][00][00][00][00]
+inline void buildBodyLamps(const ClusterState &s, uint8_t out[8]) {
+  for (int i = 0; i < 8; i++) out[i] = 0;
+  out[3] = s.highBeam ? BODY_B3_HIGH_BEAM : 0;
 }
 
 }  // namespace mazda3
