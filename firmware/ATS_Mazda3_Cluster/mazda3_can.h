@@ -4,7 +4,7 @@
 //  Kept free of Arduino dependencies so it can be unit-tested on a PC
 //  (see test/test_logic.cpp).
 //
-//  RPM, speed, fuel, coolant, check-engine, oil pressure and parking brake
+//  RPM, speed, coolant, check-engine, oil pressure and parking brake
 //  follow the project's integration matrix for the 2005 cluster (see README).
 //  The charge lamp bit and the 0x4B0 wheel-speed encoding come from RX-8
 //  research (the two cars share much of their CAN matrix) and are worth
@@ -20,15 +20,17 @@ namespace mazda3 {
 const uint16_t ID_RPM_SPEED   = 0x201;  // PCM: engine RPM, vehicle speed, throttle
 const uint16_t ID_ENGINE_INFO = 0x420;  // PCM: coolant temp, odometer, warning lamps
 const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
-const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
+// No HS 0x433 fuel frame: a bench-tested 2005 cluster transmits 0x433 itself
+// on HS-CAN, so sending it too would clash on the bus. Its fuel gauge reads
+// the analog tank sender (24-pin 2U/2W) instead.
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 // Bench-tested on a 2005 cluster: the AT warning lamp is on until 0x228 is
 // heard, and all-zero data turns it off. Byte 0 is the gear display (codes
 // below). Traction control and manual-mode lamps live in the 0x220-0x22F
 // block too (bits not yet mapped).
 const uint16_t ID_TRANSMISSION = 0x228;
-// Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Same number as ID_FUEL_LEVEL
-// but a different bus, so they don't clash.
+// Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Separate from the cluster's
+// own HS 0x433 above.
 const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
 const uint16_t ID_TURN_LAMPS  = 0x265;  // turn signal arrows
 
@@ -167,13 +169,6 @@ inline void buildEngineInfo(const ClusterState &s, uint8_t out[8]) {
 inline void buildBrakeLamps(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[4] = s.parkingBrake ? BRAKE_B4_PARKING_BRAKE : 0;
-}
-
-// 0x433: [fuel % 0x00..0x64][00][00][00][00][00][00][00]
-inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
-  float pct = s.fuelPct > 100.0f ? 100.0f : s.fuelPct;
-  out[0] = clampU8(pct);
-  for (int i = 1; i < 8; i++) out[i] = 0;
 }
 
 // 0x228: [gear display][00][00][00][00][00][00][00]. Hearing it at all turns

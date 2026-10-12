@@ -175,27 +175,6 @@ static void testTransmissionFrame() {
   CHECK(mazda3::gearFromGame(12) == mazda3::GEAR_DRIVE);
 }
 
-static void testFuelLevelFrame() {
-  mazda3::ClusterState s = {};
-  uint8_t b[8];
-  s.fuelPct = 0;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x00);
-  s.fuelPct = 100;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x64);
-  for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
-  s.fuelPct = 62.4f;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 62);
-  s.fuelPct = 140;  // never exceeds full
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x64);
-  s.fuelPct = -5;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x00);
-}
-
 static void testParserBasic() {
   TelemetryParser p;
   feedAll(p, "R2350S88.5T90A42E1;");
@@ -246,7 +225,6 @@ int main() {
   testStoppedAndClamping();
   testWheelSpeedFrame();
   testEngineInfoFrame();
-  testFuelLevelFrame();
   testBrakeLampsFrame();
   testBodyLampsFrame();
   testTransmissionFrame();

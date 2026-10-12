@@ -266,8 +266,6 @@ void sendClusterFrames(unsigned long now) {
     lastSlowMs = now;
     mazda3::buildEngineInfo(cluster, buf);
     sendBuiltIn(mazda3::ID_ENGINE_INFO, buf);
-    mazda3::buildFuelLevel(cluster, buf);
-    sendBuiltIn(mazda3::ID_FUEL_LEVEL, buf);
     mazda3::buildBrakeLamps(cluster, buf);
     sendBuiltIn(mazda3::ID_BRAKE_LAMPS, buf);
     mazda3::buildTransmission(cluster, buf);
@@ -298,7 +296,7 @@ void sendClusterFrames(unsigned long now) {
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
 //   #stat                          bus health: is the cluster acknowledging?
-// A custom frame with a built-in ID (0x201/0x212/0x228/0x420/0x433/0x4B0) replaces
+// A custom frame with a built-in ID (0x201/0x212/0x228/0x420/0x4B0) replaces
 // that built-in frame until it is removed.
 
 int hexDigit(char c) {

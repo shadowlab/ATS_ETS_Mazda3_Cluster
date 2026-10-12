@@ -96,7 +96,7 @@ the wire side: the top row is 1–12 from left to right, and the bottom row is
 
 | Position | Factory pin | Wire | Signal | Bench |
 |---|---|---|---|---|
-| 1 | `2W` | BR/R (brown/red) | Fuel gauge sender, one side | Leave open (fuel is driven over CAN `0x433`) |
+| 1 | `2W` | BR/R (brown/red) | Fuel gauge sender, one side | Leave open for now. The fuel gauge reads this sender, not CAN |
 | 2 | `2U` | W/R (white/red) | Fuel gauge sender, other side | Leave open |
 | 3 | `2S` | GY/O (grey/orange) | Immobilizer coil antenna | Leave open (the security lamp may blink) |
 | 4 | `2Q` | W/G (white/green) | Immobilizer coil antenna | Leave open |
@@ -369,7 +369,7 @@ Each field is an upper-case letter followed by a number, for example
 | `S` | Vehicle speed | mph |
 | `T` | Coolant temperature | °C |
 | `A` | Throttle / accelerator | % |
-| `F` | Fuel level | % (0 empty, 100 full) |
+| `F` | Fuel level | % (0 empty, 100 full). Not shown yet: the fuel gauge reads the analog tank sender, not CAN |
 | `E` | Check-engine lamp | 0/1 |
 | `B` | Battery/charge lamp | 0/1 |
 | `O` | Oil pressure lamp | 0/1 |
@@ -400,6 +400,11 @@ before it reaches the cluster:
 
 ## CAN frames sent
 
+The cluster sends some frames of its own on HS-CAN (seen at boot on a 2005
+cluster: `0x046`, `0x190`, `0x430`, `0x433`), so the firmware doesn't send
+those IDs. An earlier version sent a fuel frame on `0x433`, which clashed with
+the cluster's own.
+
 All frames use 11-bit IDs at 500 kbit/s.
 
 | ID | Every | Bytes | Content |
@@ -414,7 +419,6 @@ All frames use 11-bit IDs at 500 kbit/s.
 | | | 6 | `0x40` = charge lamp |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x228` | 100 ms | 0 | Gear display: `1` P, `2` R, `3` N, `4` D, `0` none. Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 1–7 are `0x00` |
-| `0x433` | 100 ms | 0 | Fuel level: `0x00` (empty) to `0x64` (100, full); bytes 1–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
 | MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |
 
