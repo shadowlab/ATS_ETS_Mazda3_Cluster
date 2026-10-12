@@ -42,7 +42,7 @@ LAMP_NAMES = {
     "P": "Parking brake",
 }
 
-GEARS = [("None", None), ("R", -1), ("N", 0), ("D", 1)]
+GEARS = [("None", None), ("P", 99), ("R", -1), ("N", 0), ("D", 1)]  # 99 = park
 
 # One-click commands. Each is sent as "#<text>\n".
 QUICK_COMMANDS = [

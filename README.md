@@ -362,7 +362,7 @@ The firmware doesn't care which program sends the text, so SimHub works too.
    'L' + if([TurnIndicatorLeft] > 0, '1', '0') +
    'Y' + if([TurnIndicatorRight] > 0, '1', '0') +
    'H' + if([HighBeam] > 0, '1', '0') +
-   'G' + if([Gear] == 'R', '-1', if([Gear] == 'N', '0', '1')) +
+   'G' + if([Gear] == 'R', '-1', if([Gear] == 'N', '0', if([Gear] == 'P', '99', '1'))) +
    ';'
    ```
 
@@ -395,7 +395,7 @@ Each field is an upper-case letter followed by a number, for example
 | `L` | Left turn signal | 0/1 (body-bus CAN, flashed by the firmware; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (body-bus CAN, as above) |
 | `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
-| `G` | Gear | negative = R, 0 = N, positive = D. Shows P while the game is paused or closed, and nothing if `G` is never sent |
+| `G` | Gear | negative = R, 0 = N, positive = D, `99` = P. Shows P while the game is paused or closed, and nothing if `G` is never sent |
 | `P` | Parking brake | 0/1 |
 
 ### Scaling

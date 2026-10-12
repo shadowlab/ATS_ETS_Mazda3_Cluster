@@ -173,6 +173,7 @@ static void testTransmissionFrame() {
   CHECK(mazda3::gearFromGame(0) == mazda3::GEAR_NEUTRAL);
   CHECK(mazda3::gearFromGame(1) == mazda3::GEAR_DRIVE);
   CHECK(mazda3::gearFromGame(12) == mazda3::GEAR_DRIVE);
+  CHECK(mazda3::gearFromGame(99) == mazda3::GEAR_PARK);
 }
 
 static void testParserBasic() {

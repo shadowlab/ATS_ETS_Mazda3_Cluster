@@ -68,9 +68,11 @@ const uint8_t GEAR_REVERSE = 2;
 const uint8_t GEAR_NEUTRAL = 3;
 const uint8_t GEAR_DRIVE   = 4;
 
-// Game gear (negative = reverse, 0 = neutral, positive = any forward gear)
-// to the cluster's P/R/N/D display.
+// Game gear (negative = reverse, 0 = neutral, positive = any forward gear,
+// GEAR_INPUT_PARK = park) to the cluster's P/R/N/D display.
+const float GEAR_INPUT_PARK = 99.0f;
 inline uint8_t gearFromGame(float gear) {
+  if (gear >= GEAR_INPUT_PARK - 0.5f) return GEAR_PARK;
   if (gear <= -0.5f) return GEAR_REVERSE;
   if (gear >= 0.5f) return GEAR_DRIVE;
   return GEAR_NEUTRAL;
