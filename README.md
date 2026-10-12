@@ -163,7 +163,9 @@ the firmware drives it from the `H` field whenever it can reach the body bus
 byte 0: `0x20` left, `0x40` right (`0x10` lights the immobilizer lamp). The
 cluster holds an arrow solid while its bit is set, so the firmware flashes it
 from the `L`/`Y` fields (`TURN_BLINK_HALF_MS`, 333 ms by default). If your game
-output already blinks, the lamp follows that timing. Nothing in `0x433` on
+output already blinks, the lamp follows that timing. There is no separate
+hazard bit: hazards are `L` and `Y` on together, and both arrows share one
+flasher so they stay in step (`cluster_test.py --hazard` to try it). Nothing in `0x433` on
 HS-CAN lights any of them.
 
 #### Reaching the body bus (MS-CAN)

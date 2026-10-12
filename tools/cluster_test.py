@@ -11,6 +11,7 @@ Examples:
   python cluster_test.py COM5 --rpm 800 --speed 60  # hold fixed values
   python cluster_test.py COM5 --fuel 25             # fuel gauge to a quarter
   python cluster_test.py COM5 --rpm 800 --lamps     # cycle warning/indicator lamps
+  python cluster_test.py COM5 --hazard              # both turn signals on (hazards)
   python cluster_test.py COM5 --raw "420 82 40 00 00 01 00 00 00"   # inject a frame
   python cluster_test.py COM5 --raw "-"             # clear injected frames
 
@@ -61,6 +62,7 @@ def main():
     ap.add_argument("--throttle", type=float, default=0, help="percent")
     ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
+    ap.add_argument("--hazard", action="store_true", help="hold both turn signals on (hazard lights)")
     ap.add_argument("--raw", help="send a '#' command (custom CAN frame) and exit")
     args = ap.parse_args()
 
@@ -90,6 +92,8 @@ def main():
             lamps = {}
             if args.lamps:
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
+            if args.hazard:
+                lamps["L"] = lamps["Y"] = True
             port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps))
             read_back(port)
             time.sleep(period)

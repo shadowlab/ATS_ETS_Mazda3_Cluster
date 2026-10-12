@@ -29,8 +29,9 @@ mcp2515_can MSCAN(MS_CAN_CS_PIN);
 TelemetryParser parser;
 mazda3::ClusterState cluster;
 
-mazda3::TurnBlinker leftBlinker = {};
-mazda3::TurnBlinker rightBlinker = {};
+// One flasher for both arrows, so hazards (left and right together) flash in
+// step even if one side was already on.
+mazda3::TurnBlinker turnBlinker = {};
 
 unsigned long lastTelemetryMs = 0;
 bool telemetryLive = false;
@@ -178,8 +179,11 @@ void applyTelemetry() {
   cluster.parkingBrake = parser.value('P') >= 0.5f;
   cluster.highBeam = parser.value('H') >= 0.5f;
   unsigned long now = millis();
-  cluster.leftTurn = leftBlinker.update(parser.value('L') >= 0.5f, now, TURN_BLINK_HALF_MS);
-  cluster.rightTurn = rightBlinker.update(parser.value('Y') >= 0.5f, now, TURN_BLINK_HALF_MS);
+  bool left = parser.value('L') >= 0.5f;
+  bool right = parser.value('Y') >= 0.5f;
+  bool lit = turnBlinker.update(left || right, now, TURN_BLINK_HALF_MS);
+  cluster.leftTurn = left && lit;
+  cluster.rightTurn = right && lit;
 
   setIndicator(PIN_LEFT_TURN, parser.value('L') >= 0.5f);
   setIndicator(PIN_RIGHT_TURN, parser.value('Y') >= 0.5f);
@@ -197,8 +201,9 @@ void applyIdle() {
   cluster.oilWarning = false;
   cluster.parkingBrake = false;
   cluster.highBeam = false;
-  cluster.leftTurn = leftBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
-  cluster.rightTurn = rightBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
+  turnBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
+  cluster.leftTurn = false;
+  cluster.rightTurn = false;
   // Leave coolant and fuel where they were so those gauges don't plunge when
   // you pause.
 
