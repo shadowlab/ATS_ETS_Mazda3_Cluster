@@ -220,7 +220,8 @@ function log(text) {
 
 // ------------------------------------------------------------ serial
 let port = null, writer = null, reader = null, writing = false, timer = null;
-let heard = false, quietTimer = null;
+let heard = false, quietTimer = null, bootTimer = null;
+const BOOT_WAIT_MS = 4000;
 const startMs = performance.now();
 
 if (!("serial" in navigator)) {
@@ -244,23 +245,26 @@ async function connect() {
   writer = enc.writable.getWriter();
   $("connect").textContent = "Disconnect";
   $("connect").classList.remove("primary");
-  setStatus("connected, waiting for the board...", true);
+  setStatus("connected, board starting up...", true);
   heard = false;
   readLoop(port);
-  // Pulse DTR like the Arduino IDE does, so the board restarts and prints its
-  // startup lines (some USB adapters don't reset on open by themselves).
-  try {
-    await port.setSignals({ dataTerminalReady: false, requestToSend: false });
-    await new Promise(r => setTimeout(r, 100));
-    await port.setSignals({ dataTerminalReady: true, requestToSend: true });
-  } catch {}
-  timer = setInterval(sendPacket, SEND_PERIOD_MS);
+  // Opening the port restarts the Mega. Its bootloader listens on the port for
+  // the first second or two, and data sent then can stop it starting the
+  // sketch, so wait for the sketch's "CAN ready" (or a few seconds) before
+  // streaming. Same idea as the 4 s wait in cluster_test.py.
+  bootTimer = setTimeout(startStreaming, BOOT_WAIT_MS);
   quietTimer = setTimeout(() => {
     if (port && !heard) {
       setStatus("connected, but no reply from the board yet", true);
       log("No output from the board yet. Check it's the Mega's port, and that the sketch is uploaded. Try Bus health.\n");
     }
-  }, 5000);
+  }, 6000);
+}
+
+function startStreaming() {
+  clearTimeout(bootTimer);
+  if (!port || timer) return;
+  timer = setInterval(sendPacket, SEND_PERIOD_MS);
 }
 
 function setStatus(text, live) {
@@ -279,6 +283,7 @@ async function readLoop(p) {
       if (value) {
         if (!heard) { heard = true; setStatus("connected, board is talking", true); }
         log(value.replace(/\r/g, ""));
+        if (value.includes("CAN ready")) setTimeout(startStreaming, 300);
       }
     }
   } catch (e) {
@@ -288,7 +293,9 @@ async function readLoop(p) {
 
 async function disconnect() {
   clearInterval(timer);
+  timer = null;
   clearTimeout(quietTimer);
+  clearTimeout(bootTimer);
   const p = port;
   port = null;
   try { await reader?.cancel(); } catch {}
@@ -326,6 +333,7 @@ async function sendPacket() {
 
 function sendCommand(text) {
   if (!writer) { log("not connected\n"); return; }
+  if (!timer) { log("board still starting, try again in a moment\n"); return; }
   log(`> #${text}\n`);
   write(`#${text}\n`);
 }
