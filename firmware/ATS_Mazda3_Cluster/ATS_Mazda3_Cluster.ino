@@ -182,6 +182,8 @@ void applyTelemetry() {
   cluster.oilWarning = parser.value('O') >= 0.5f;
   cluster.parkingBrake = parser.value('P') >= 0.5f;
   cluster.highBeam = parser.value('H') >= 0.5f;
+  // No G field: leave the gear display blank rather than guess.
+  cluster.gear = parser.seen('G') ? mazda3::gearFromGame(parser.value('G')) : mazda3::GEAR_NONE;
   unsigned long now = millis();
   bool left = parser.value('L') >= 0.5f;
   bool right = parser.value('Y') >= 0.5f;
@@ -205,6 +207,7 @@ void applyIdle() {
   cluster.oilWarning = false;
   cluster.parkingBrake = false;
   cluster.highBeam = false;
+  cluster.gear = mazda3::GEAR_PARK;
   turnBlinker.update(false, millis(), TURN_BLINK_HALF_MS);
   cluster.leftTurn = false;
   cluster.rightTurn = false;

@@ -12,6 +12,7 @@ Examples:
   python cluster_test.py COM5 --fuel 25             # fuel gauge to a quarter
   python cluster_test.py COM5 --rpm 800 --lamps     # cycle warning/indicator lamps
   python cluster_test.py COM5 --hazard              # both turn signals on (hazards)
+  python cluster_test.py COM5 --gear -1             # gear display to R
   python cluster_test.py COM5 --raw "420 82 40 00 00 01 00 00 00"   # inject a frame
   python cluster_test.py COM5 --raw "-"             # clear injected frames
 
@@ -35,9 +36,11 @@ except ImportError:
 LAMP_KEYS = ["E", "B", "O", "L", "Y", "H", "P"]
 
 
-def packet(rpm, speed, coolant, throttle, fuel, lamps=None):
+def packet(rpm, speed, coolant, throttle, fuel, lamps=None, gear=None):
     lamps = lamps or {}
     fields = [f"R{rpm:.0f}", f"S{speed:.1f}", f"T{coolant:.0f}", f"A{throttle:.0f}", f"F{fuel:.0f}"]
+    if gear is not None:
+        fields.append(f"G{gear}")
     fields += [f"{k}{1 if lamps.get(k) else 0}" for k in LAMP_KEYS]
     return ("".join(fields) + ";\n").encode("ascii")
 
@@ -63,6 +66,7 @@ def main():
     ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
     ap.add_argument("--hazard", action="store_true", help="hold both turn signals on (hazard lights)")
+    ap.add_argument("--gear", type=int, help="gear display: -1 R, 0 N, 1 or more D")
     ap.add_argument("--raw", help="send a '#' command (custom CAN frame) and exit")
     args = ap.parse_args()
 
@@ -94,7 +98,7 @@ def main():
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
             if args.hazard:
                 lamps["L"] = lamps["Y"] = True
-            port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps))
+            port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps, args.gear))
             read_back(port)
             time.sleep(period)
     except KeyboardInterrupt:

@@ -23,8 +23,9 @@ const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
 const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 // Bench-tested on a 2005 cluster: the AT warning lamp is on until 0x228 is
-// heard, and all-zero data turns it off. Traction control and manual-mode
-// lamps live in the 0x220-0x22F block too (bits not yet mapped).
+// heard, and all-zero data turns it off. Byte 0 is the gear display (codes
+// below). Traction control and manual-mode lamps live in the 0x220-0x22F
+// block too (bits not yet mapped).
 const uint16_t ID_TRANSMISSION = 0x228;
 // Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Same number as ID_FUEL_LEVEL
 // but a different bus, so they don't clash.
@@ -55,6 +56,21 @@ const uint8_t BODY_B3_HIGH_BEAM      = 0x40;  // MS 0x433 byte 3
 const uint8_t TURN_B0_LEFT           = 0x20;  // MS 0x265 byte 0
 const uint8_t TURN_B0_RIGHT          = 0x40;  // MS 0x265 byte 0
 
+// 0x228 byte 0, bench-tested on a 2005 cluster. 0 shows no gear.
+const uint8_t GEAR_NONE    = 0;
+const uint8_t GEAR_PARK    = 1;
+const uint8_t GEAR_REVERSE = 2;
+const uint8_t GEAR_NEUTRAL = 3;
+const uint8_t GEAR_DRIVE   = 4;
+
+// Game gear (negative = reverse, 0 = neutral, positive = any forward gear)
+// to the cluster's P/R/N/D display.
+inline uint8_t gearFromGame(float gear) {
+  if (gear <= -0.5f) return GEAR_REVERSE;
+  if (gear >= 0.5f) return GEAR_DRIVE;
+  return GEAR_NEUTRAL;
+}
+
 // ------------------------------------------------------- Cluster state
 struct ClusterState {
   float rpm;          // engine rpm as it should appear on the tach
@@ -69,6 +85,7 @@ struct ClusterState {
   bool highBeam;
   bool leftTurn;   // arrow lit right now (already blinked)
   bool rightTurn;
+  uint8_t gear;    // GEAR_* display code
 };
 
 // Turns a turn-signal input into a flashing lamp. The cluster holds an arrow
@@ -159,10 +176,11 @@ inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
   for (int i = 1; i < 8; i++) out[i] = 0;
 }
 
-// 0x228: all zero = transmission module present, no faults (AT lamp off).
+// 0x228: [gear display][00][00][00][00][00][00][00]. Hearing it at all turns
+// the AT lamp off.
 inline void buildTransmission(const ClusterState &s, uint8_t out[8]) {
-  (void)s;
   for (int i = 0; i < 8; i++) out[i] = 0;
+  out[0] = s.gear;
 }
 
 // MS 0x433: [00][00][00][high beam bits][00][00][00][00]

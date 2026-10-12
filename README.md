@@ -312,7 +312,7 @@ hold the port at a time.
    by the SimTools output token for that value, and end it with `;`. For example:
 
    ```
-   R<rpm token>S<speed token>T<water temp token>A<throttle token>F<fuel token>E<engine warning token>B<battery warning token>O<oil warning token>L<left blinker token>Y<right blinker token>H<high beam token>P<parking brake token>;
+   R<rpm token>S<speed token>T<water temp token>A<throttle token>F<fuel token>E<engine warning token>B<battery warning token>O<oil warning token>L<left blinker token>Y<right blinker token>H<high beam token>P<parking brake token>G<gear token>;
    ```
 
    Replace each `<... token>` with the matching dash/telemetry output from your
@@ -343,11 +343,12 @@ The firmware doesn't care which program sends the text, so SimHub works too.
    'L' + if([TurnIndicatorLeft] > 0, '1', '0') +
    'Y' + if([TurnIndicatorRight] > 0, '1', '0') +
    'H' + if([HighBeam] > 0, '1', '0') +
+   'G' + if([Gear] == 'R', '-1', if([Gear] == 'N', '0', '1')) +
    ';'
    ```
 
    Check the preview in SimHub's formula editor while ATS is running. It should
-   show something like `R1450S72.0T88A35F64E0O0P0L1Y0H0;`. A property that
+   show something like `R1450S72.0T88A35F64E0O0P0L1Y0H0G1;`. A property that
    comes through as `True`/`False` or that SimHub doesn't know will show up
    there. Fix it before sending, because stray letters are read as field keys.
 3. Set the update rate to 30–60 Hz.
@@ -375,6 +376,7 @@ Each field is an upper-case letter followed by a number, for example
 | `L` | Left turn signal | 0/1 (body-bus CAN, flashed by the firmware; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (body-bus CAN, as above) |
 | `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
+| `G` | Gear | negative = R, 0 = N, positive = D. Shows P while the game is paused or closed, and nothing if `G` is never sent |
 | `P` | Parking brake | 0/1 |
 
 ### Scaling
@@ -411,7 +413,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | | | 4 | `1` = oil pressure OK, `0` = red oil lamp on |
 | | | 6 | `0x40` = charge lamp |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
-| `0x228` | 100 ms | all | `0x00`: stands in for the transmission module so the AT warning lamp goes out |
+| `0x228` | 100 ms | 0 | Gear display: `1` P, `2` R, `3` N, `4` D, `0` none. Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 1–7 are `0x00` |
 | `0x433` | 100 ms | 0 | Fuel level: `0x00` (empty) to `0x64` (100, full); bytes 1–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
 | MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |

@@ -163,6 +163,16 @@ static void testTransmissionFrame() {
   for (int i = 0; i < 8; i++) b[i] = 0xAA;
   mazda3::buildTransmission(s, b);
   for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.gear = mazda3::GEAR_DRIVE;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 4);
+  for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
+
+  CHECK(mazda3::gearFromGame(-1) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(-2) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(0) == mazda3::GEAR_NEUTRAL);
+  CHECK(mazda3::gearFromGame(1) == mazda3::GEAR_DRIVE);
+  CHECK(mazda3::gearFromGame(12) == mazda3::GEAR_DRIVE);
 }
 
 static void testFuelLevelFrame() {
