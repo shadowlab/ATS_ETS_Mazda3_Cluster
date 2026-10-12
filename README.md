@@ -437,6 +437,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#?` | List custom frames |
 | `#scan m` / `#scan h` | Scan every ID on MS-CAN / HS-CAN with all-`0xFF` frames, 16 IDs every 2 s (see [Finding the lamp frames](#finding-the-lamp-frames)) |
 | `#scan h 4D0` / `#scan m 4D0` | Start a scan at ID `0x4D0` and carry on up from there (`hs`/`ms` and a `0x` prefix also work) |
+| `#scan h 0 00` | Scan with every byte `0x00` instead of `0xFF` (any fill byte works; `#scan resume` keeps it). For lamps that are on until their module is heard, like AT: watch for the lamp going **out** |
 | `#scan` | Stop a scan and print the block it stopped at |
 | `#scan resume` | Carry on from the block where the last scan stopped |
 | `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |

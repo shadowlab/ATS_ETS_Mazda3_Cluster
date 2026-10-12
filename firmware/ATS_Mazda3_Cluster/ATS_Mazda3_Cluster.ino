@@ -102,7 +102,9 @@ void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
 // a time, SCAN_STEP_MS per block, printing each block as it starts. Watch the
 // cluster and note the block that lights a lamp, then narrow it down with
 // custom frames. `#scan h 4D0` starts at an ID, `#scan` stops and says where,
-// and `#scan resume` carries on from there.
+// and `#scan resume` carries on from there. `#scan h 0 00` fills the frames
+// with 0x00 instead: use it to find a lamp that is on until its module is
+// heard (watch for it going out), where all-0xFF may read as a fault.
 #if BODY_BUS_TEST
 #define MAIN_BUS_LABEL "MS (main shield) 0x"
 #else
@@ -114,6 +116,7 @@ bool scanning = false;
 bool scanStarted = false;  // a scan has run since boot, so resume makes sense
 bool scanMs = false;
 uint16_t scanBase = 0;
+uint8_t scanFill = 0xFF;
 unsigned long scanStepStartMs = 0;
 
 void printScanBlock() {
@@ -137,7 +140,8 @@ void sendScanFrames(unsigned long now) {
     }
     printScanBlock();
   }
-  static const uint8_t ff[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  uint8_t ff[8];
+  for (uint8_t i = 0; i < 8; i++) ff[i] = scanFill;
   for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK && id <= 0x7FF; id++) {
     if (scanMs) {
       sendMsFrame(id, ff);
@@ -285,6 +289,7 @@ void sendClusterFrames(unsigned long now) {
 //   #?                             list custom frames
 //   #scan m / #scan h              scan every ID on MS-CAN / HS-CAN
 //   #scan h 4D0                    scan HS-CAN starting at 0x4D0
+//   #scan h 0 00                   scan HS-CAN from 0 with all-0x00 frames
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
 //   #stat                          bus health: is the cluster acknowledging?
@@ -427,8 +432,14 @@ void handleCommand(const char *cmd) {
         DEBUG_PORT.println(F("start ID must be 0-7FF"));
         return;
       }
+      long fill = nextHex(arg);
+      if (fill > 0xFF) {
+        DEBUG_PORT.println(F("fill byte must be 00-FF"));
+        return;
+      }
       scanMs = ms;
       scanBase = start < 0 ? 0 : (uint16_t)start;
+      scanFill = fill < 0 ? 0xFF : (uint8_t)fill;
       scanning = true;
       scanStarted = true;
       scanStepStartMs = millis();
