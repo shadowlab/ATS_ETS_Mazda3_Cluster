@@ -21,6 +21,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
 | `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
+| `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
 | `test/test_logic.cpp` | Unit tests for the frame encoding and parser (run on a PC) |
 
 ## Hardware
@@ -296,6 +297,18 @@ python tools/cluster_test.py COM5 --rpm 800 --lamps  # cycle each lamp in turn
 Replace `COM5` with your Mega's port (check Device Manager or the Arduino
 IDE). Close the Serial Monitor and SimTools first, because only one program can
 hold the port at a time.
+
+Or use the window version, which also replaces the Serial Monitor:
+
+```
+python tools/cluster_gui.py
+```
+
+Pick the port and press **Connect**. The sliders and lamp switches stream to
+the board continuously, the buttons send common commands (`#stat`, `#watch`,
+stop scan/sweep, clear frames), the box at the bottom sends any `#` command,
+and the board's replies show in the log. It needs Python's tkinter, which comes
+with the python.org installer for Windows.
 
 ## SimTools setup
 
