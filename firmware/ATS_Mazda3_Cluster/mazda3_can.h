@@ -22,6 +22,10 @@ const uint16_t ID_ENGINE_INFO = 0x420;  // PCM: coolant temp, odometer, warning 
 const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
 const uint16_t ID_FUEL_LEVEL  = 0x433;  // fuel level for the fuel gauge
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
+// Bench-tested on a 2005 cluster: the AT warning lamp is on until 0x228 is
+// heard, and all-zero data turns it off. Traction control and manual-mode
+// lamps live in the 0x220-0x22F block too (bits not yet mapped).
+const uint16_t ID_TRANSMISSION = 0x228;
 // Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Same number as ID_FUEL_LEVEL
 // but a different bus, so they don't clash.
 const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
@@ -153,6 +157,12 @@ inline void buildFuelLevel(const ClusterState &s, uint8_t out[8]) {
   float pct = s.fuelPct > 100.0f ? 100.0f : s.fuelPct;
   out[0] = clampU8(pct);
   for (int i = 1; i < 8; i++) out[i] = 0;
+}
+
+// 0x228: all zero = transmission module present, no faults (AT lamp off).
+inline void buildTransmission(const ClusterState &s, uint8_t out[8]) {
+  (void)s;
+  for (int i = 0; i < 8; i++) out[i] = 0;
 }
 
 // MS 0x433: [00][00][00][high beam bits][00][00][00][00]

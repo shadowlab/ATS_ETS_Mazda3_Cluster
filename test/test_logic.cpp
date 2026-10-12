@@ -156,6 +156,15 @@ static void testTurnBlinker() {
   CHECK(solid.update(true, 5000, 0));
 }
 
+static void testTransmissionFrame() {
+  mazda3::ClusterState s = {};
+  s.rpm = 3000;
+  uint8_t b[8];
+  for (int i = 0; i < 8; i++) b[i] = 0xAA;
+  mazda3::buildTransmission(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+}
+
 static void testFuelLevelFrame() {
   mazda3::ClusterState s = {};
   uint8_t b[8];
@@ -230,6 +239,7 @@ int main() {
   testFuelLevelFrame();
   testBrakeLampsFrame();
   testBodyLampsFrame();
+  testTransmissionFrame();
   testTurnLampsFrame();
   testTurnBlinker();
   testParserBasic();

@@ -267,6 +267,8 @@ void sendClusterFrames(unsigned long now) {
     sendBuiltIn(mazda3::ID_FUEL_LEVEL, buf);
     mazda3::buildBrakeLamps(cluster, buf);
     sendBuiltIn(mazda3::ID_BRAKE_LAMPS, buf);
+    mazda3::buildTransmission(cluster, buf);
+    sendBuiltIn(mazda3::ID_TRANSMISSION, buf);
     mazda3::buildBodyLamps(cluster, buf);
     sendBodyFrame(mazda3::ID_BODY_LAMPS, buf);
     for (uint8_t i = 0; i < customCount; i++) {
@@ -293,7 +295,7 @@ void sendClusterFrames(unsigned long now) {
 //   #scan                          stop a scan (prints where it stopped)
 //   #scan resume                   carry on from where it stopped
 //   #stat                          bus health: is the cluster acknowledging?
-// A custom frame with a built-in ID (0x201/0x212/0x420/0x433/0x4B0) replaces
+// A custom frame with a built-in ID (0x201/0x212/0x228/0x420/0x433/0x4B0) replaces
 // that built-in frame until it is removed.
 
 int hexDigit(char c) {
