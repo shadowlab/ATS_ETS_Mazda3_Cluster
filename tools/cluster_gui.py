@@ -14,8 +14,13 @@ import queue
 import sys
 import threading
 import time
-import tkinter as tk
-from tkinter import ttk
+try:
+    import tkinter as tk
+    from tkinter import ttk
+except ImportError:
+    sys.exit("This Python was installed without tkinter (the window library).\n"
+             "Windows: run the python.org installer again, choose Modify, and tick\n"
+             "'tcl/tk and IDLE'. Linux: install python3-tk.")
 
 try:
     import serial
