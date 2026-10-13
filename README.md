@@ -389,9 +389,9 @@ Each field is an upper-case letter followed by a number, for example
 | `T` | Coolant temperature | °C |
 | `A` | Throttle / accelerator | % |
 | `F` | Fuel level | % (0 empty, 100 full). Not shown yet: the fuel gauge reads the analog tank sender, not CAN |
-| `E` | Check-engine lamp | 0/1 |
+| `E` | Check-engine lamp | 0/1, or `2` to flash it |
 | `B` | Battery/charge lamp | 0/1 |
-| `O` | Oil pressure lamp | 0/1 |
+| `O` | Oil pressure lamp | 0/1. Not on CAN: needs `PIN_OIL_LAMP` and a transistor on position 9 (see `config.h`) |
 | `L` | Left turn signal | 0/1 (body-bus CAN, flashed by the firmware; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (body-bus CAN, as above) |
 | `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
@@ -433,9 +433,7 @@ All frames use 11-bit IDs at 500 kbit/s.
 | | | 6 | Throttle × 2 |
 | `0x4B0` | 20 ms | 0–7 | Four wheel speeds: km/h × 100 + 10000 (keeps the ABS lamp quiet) |
 | `0x420` | 100 ms | 0 | Coolant: °C + 40 |
-| | | 1 | `0x40` = check-engine lamp |
-| | | 4 | `1` = oil pressure OK, `0` = red oil lamp on |
-| | | 6 | `0x40` = charge lamp |
+| | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; other bytes `0x00` |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x228` | 100 ms | 0 | Gear display: `1` P, `2` R, `3` N, `4` D, `0` none. Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 1–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
@@ -444,9 +442,10 @@ All frames use 11-bit IDs at 500 kbit/s.
 
 The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
 `SPEED_CAN_OFFSET`) and lamp bits are constants at the top of `mazda3_can.h`.
-The charge lamp bit and the `0x4B0` wheel-speed encoding come from RX-8
-research (the RX-8 shares much of its CAN matrix with the Mazda 3) and haven't
-been confirmed on a 2005 cluster. Use the `#` command below to check them on
+The `0x420` lamp bits were found on a 2005 cluster. The `0x212` parking brake
+bit and the `0x4B0` wheel-speed encoding come from RX-8 research (the RX-8
+shares much of its CAN matrix with the Mazda 3); the `0x212` bit does nothing
+on a 2005 cluster. Use the `#` command below to check them on
 yours.
 
 ### Experimenting with frames over serial

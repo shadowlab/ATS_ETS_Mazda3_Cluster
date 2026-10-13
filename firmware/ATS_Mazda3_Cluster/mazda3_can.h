@@ -4,11 +4,11 @@
 //  Kept free of Arduino dependencies so it can be unit-tested on a PC
 //  (see test/test_logic.cpp).
 //
-//  RPM, speed, coolant, check-engine, oil pressure and parking brake
-//  follow the project's integration matrix for the 2005 cluster (see README).
-//  The charge lamp bit and the 0x4B0 wheel-speed encoding come from RX-8
-//  research (the two cars share much of their CAN matrix) and are worth
-//  confirming - use the serial `#` command to experiment without reflashing.
+//  RPM, speed, coolant and the 0x420 lamp bits are bench-tested on a 2005
+//  cluster. The 0x212 parking brake bit and the 0x4B0 wheel-speed encoding
+//  come from RX-8 research (the two cars share much of their CAN matrix); the
+//  0x212 bit does nothing on a 2005 cluster. Use the serial `#` commands to
+//  experiment without reflashing.
 // =============================================================================
 #pragma once
 
@@ -49,8 +49,12 @@ const float SPEED_CAN_FACTOR = 100.0f;
 const float SPEED_CAN_OFFSET = 0.0f;
 
 // ------------------------------------------------------------ Lamp bits
-const uint8_t ENGINE_B1_CHECK_ENGINE = 0x40;  // 0x420 byte 1
-const uint8_t ENGINE_B6_CHARGE       = 0x40;  // 0x420 byte 6 (RX-8 layout)
+// Bench-tested on a 2005 cluster: all in 0x420 byte 4. Bit 0 is kept set as
+// before (it doesn't drive the oil lamp, which is the wired switch on 1B).
+const uint8_t ENGINE_B4_BASE         = 0x01;
+const uint8_t ENGINE_B4_CHARGE       = 0x02;  // battery/charge lamp
+const uint8_t ENGINE_B4_CHECK_ENGINE = 0x40;  // check-engine lamp, steady
+const uint8_t ENGINE_B4_CHECK_FLASH  = 0x80;  // check-engine lamp, flashing
 const uint8_t BRAKE_B4_PARKING_BRAKE = 0x40;  // 0x212 byte 4
 // Bench-tested on a 2005 cluster: MS-CAN 0x433 byte 3 = 0x40 lights the
 // high beam indicator.
@@ -86,6 +90,7 @@ struct ClusterState {
   float throttlePct;  // 0..100
   float fuelPct;      // 0 (empty) .. 100 (full)
   bool checkEngine;
+  bool checkEngineFlash;  // flashing MIL (misfire style)
   bool chargeWarning;
   bool oilWarning;
   bool parkingBrake;
@@ -158,15 +163,18 @@ inline void buildWheelSpeed(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i += 2) putU16(&out[i], v);
 }
 
-// 0x420: [coolant][MIL bits][00][00][oil pressure ok][00][warning bits][00]
+// 0x420: [coolant][00][00][00][lamp bits][00][00][00]
 inline void buildEngineInfo(const ClusterState &s, uint8_t out[8]) {
   out[0] = encodeCoolant(s.coolantC);
-  out[1] = s.checkEngine ? ENGINE_B1_CHECK_ENGINE : 0;
+  out[1] = 0;
   out[2] = 0;
   out[3] = 0;
-  out[4] = s.oilWarning ? 0 : 1;  // 1 = pressure OK, 0 = red oil lamp on
+  out[4] = ENGINE_B4_BASE;
+  if (s.chargeWarning) out[4] |= ENGINE_B4_CHARGE;
+  if (s.checkEngineFlash) out[4] |= ENGINE_B4_CHECK_FLASH;
+  else if (s.checkEngine) out[4] |= ENGINE_B4_CHECK_ENGINE;
   out[5] = 0;
-  out[6] = s.chargeWarning ? ENGINE_B6_CHARGE : 0;
+  out[6] = 0;
   out[7] = 0;
 }
 

@@ -133,7 +133,7 @@ const GAUGES = [
 ];
 const PACKET_ORDER = ["R", "S", "T", "A", "F"];
 const LAMPS = [
-  ["E", "Check engine"], ["B", "Battery"], ["O", "Oil pressure"], ["P", "Parking brake"],
+  ["E", "Check engine"], ["X", "Flash check engine"], ["B", "Battery"], ["O", "Oil pressure"], ["P", "Parking brake"],
   ["L", "Left turn"], ["Y", "Right turn"], ["H", "High beam"],
 ];
 const LAMP_ORDER = ["E", "B", "O", "L", "Y", "H", "P"];
@@ -153,7 +153,10 @@ function buildPacket(values, lamps, gear) {
     s += k + Number(values[k]).toFixed(g.digits);
   }
   if (gear !== null && gear !== undefined) s += "G" + gear;
-  for (const k of LAMP_ORDER) s += k + (lamps[k] ? "1" : "0");
+  for (const k of LAMP_ORDER) {
+    if (k === "E") s += "E" + (lamps.X ? "2" : lamps.E ? "1" : "0");  // E2 = flashing
+    else s += k + (lamps[k] ? "1" : "0");
+  }
   return s + ";\n";
 }
 

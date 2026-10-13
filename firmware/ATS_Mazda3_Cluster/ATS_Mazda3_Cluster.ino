@@ -183,6 +183,7 @@ void applyTelemetry() {
   // than dropping the gauge to empty.
   if (parser.seen('F')) cluster.fuelPct = scaled('F', FUEL_SCALE, FUEL_OFFSET);
   cluster.checkEngine = parser.value('E') >= 0.5f;
+  cluster.checkEngineFlash = parser.value('E') >= 1.5f;  // E2 = flashing
   cluster.chargeWarning = parser.value('B') >= 0.5f;
   cluster.oilWarning = parser.value('O') >= 0.5f;
   cluster.parkingBrake = parser.value('P') >= 0.5f;
@@ -200,6 +201,7 @@ void applyTelemetry() {
   setIndicator(PIN_RIGHT_TURN, parser.value('Y') >= 0.5f);
   setIndicator(PIN_HIGH_BEAM, parser.value('H') >= 0.5f);
   setIndicator(PIN_PARK_BRAKE, cluster.parkingBrake);
+  setIndicator(PIN_OIL_LAMP, cluster.oilWarning);
 }
 
 // Game paused or closed: park the needles, lamps off.
@@ -208,6 +210,7 @@ void applyIdle() {
   cluster.speedKmh = 0;
   cluster.throttlePct = 0;
   cluster.checkEngine = false;
+  cluster.checkEngineFlash = false;
   cluster.chargeWarning = false;
   cluster.oilWarning = false;
   cluster.parkingBrake = false;
@@ -223,6 +226,7 @@ void applyIdle() {
   setIndicator(PIN_RIGHT_TURN, false);
   setIndicator(PIN_HIGH_BEAM, false);
   setIndicator(PIN_PARK_BRAKE, false);
+  setIndicator(PIN_OIL_LAMP, false);
 }
 
 // ----------------------------------------------------------- Byte sweep
@@ -691,6 +695,7 @@ void setup() {
   initIndicator(PIN_RIGHT_TURN);
   initIndicator(PIN_HIGH_BEAM);
   initIndicator(PIN_PARK_BRAKE);
+  initIndicator(PIN_OIL_LAMP);
 
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;

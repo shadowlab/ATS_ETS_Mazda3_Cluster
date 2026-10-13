@@ -73,25 +73,27 @@ static void testEngineInfoFrame() {
   uint8_t b[8];
   mazda3::buildEngineInfo(s, b);
   CHECK(b[0] == 130);
-  CHECK(b[1] == 0);
-  CHECK(b[4] == 1);  // oil pressure OK
-  CHECK(b[6] == 0);
+  CHECK(b[4] == 0x01);  // no lamps
+  for (int i = 1; i < 8; i++) {
+    if (i != 4) CHECK(b[i] == 0);
+  }
 
-  s.checkEngine = true;
-  mazda3::buildEngineInfo(s, b);
-  CHECK(b[1] == 0x40);
-  CHECK(b[4] == 1 && b[6] == 0);
-
-  s.checkEngine = false;
-  s.oilWarning = true;
-  mazda3::buildEngineInfo(s, b);
-  CHECK(b[1] == 0);
-  CHECK(b[4] == 0);
-
-  s.oilWarning = false;
   s.chargeWarning = true;
   mazda3::buildEngineInfo(s, b);
-  CHECK(b[6] == 0x40);
+  CHECK(b[4] == 0x03);
+
+  s.chargeWarning = false;
+  s.checkEngine = true;
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x41);
+
+  s.checkEngineFlash = true;  // flashing wins over steady
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x81);
+
+  s.oilWarning = true;  // the oil lamp is wired, not on CAN
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x81);
 }
 
 static void testBrakeLampsFrame() {

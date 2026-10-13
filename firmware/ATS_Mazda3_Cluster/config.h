@@ -112,6 +112,11 @@
 #define PIN_RIGHT_TURN  -1
 #define PIN_HIGH_BEAM   -1
 #define PIN_PARK_BRAKE  -1
+// The oil pressure lamp isn't on CAN: the cluster reads the oil pressure
+// switch on 16-pin position 9 (1B), grounded = lamp on. To drive it from the
+// game, wire an NPN transistor (or relay) from position 9 to ground and give
+// its base pin here (through ~1 kOhm), e.g. 22.
+#define PIN_OIL_LAMP    -1
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
