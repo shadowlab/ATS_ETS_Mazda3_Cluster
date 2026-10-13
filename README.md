@@ -184,6 +184,8 @@ sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
 
+![Fuel sender stand-in wiring](docs/fuel_gauge_wiring.svg)
+
 | Part | Goes between |
 |---|---|
 | 390 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
