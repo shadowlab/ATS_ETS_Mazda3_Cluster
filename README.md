@@ -508,29 +508,8 @@ the cluster plug, not CAN.
 
 ## CAN frames sent
 
-### Frames the cluster sends
-
-A 2005 cluster transmits four frames of its own on HS-CAN as soon as it has
-ignition power, with or without the Mega. They show up as `heard HS ...` lines
-at boot and in `#stat`:
-
-| ID | Data seen on the bench | What we know |
-|---|---|---|
-| `0x046` | `06 00 FF 00 00 00 00 00` | Probably a status or keep-alive frame. |
-| `0x190` | `00 00 40 00 00 00 00 00` | Unknown. An online claim that byte 2 bit 6 (`0x40`) is the brake lamp didn't hold up: sending it to the cluster does nothing. |
-| `0x430` | `FF FE` (2 bytes) | Unknown; probably a status frame. |
-| `0x433` | `00 04 00 00 FF 04 00 00` | Unknown. Not the fuel level: the HS `0x433` fuel frame earlier versions sent did nothing. Unrelated to MS `0x433`, the high beam frame on the body bus. |
-
-With `#watch` on, none of them changed while the speed, RPM, lamps, AT lamp or
-ABS lamp changed. So they don't report lamp state or distance (no odometer),
-and the firmware can't read anything useful from them. Those meanings are
-guesses: nothing on the bench depends on them.
-
-The firmware never sends these IDs on HS-CAN: two nodes sending the same ID
-with different data collide on the bus. An earlier version sent a fuel frame on
-`0x433`, which clashed this way and was removed.
-
-### Frames the firmware sends
+The cluster sends a few frames of its own on HS-CAN (`0x046`, `0x190`, `0x430`,
+`0x433`), so the firmware never sends those IDs.
 
 All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 125 kbit/s.
 
