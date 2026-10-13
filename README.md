@@ -76,7 +76,7 @@ the wire colours match a 2005 harness plug in this orientation.
 | 6 | `1K` | L/R (blue/red) | HS-CAN L, 500 kbit/s | Shield CAN-L |
 | 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus) | Leave open |
 | 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | Leave open |
-| 9 | `1B` | B/Y (black/yellow) | Oil pressure switch (grounded = oil lamp on) | Leave open |
+| 9 | `1B` | B/Y (black/yellow) | Oil pressure switch (grounded = oil lamp on, bench-confirmed) | Leave open |
 | 10 | `1D` | — | Vacant | — |
 | 11 | `1F` | B/O (black/orange) | Ground | 12 V supply − and Arduino GND |
 | 12 | `1H` | — | Vacant | — |
@@ -127,7 +127,7 @@ the car has a 10 A and a 15 A fuse on these lines.
 |---|---|---|---|
 | `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
 | `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | High beam and turn arrows, via a second CAN module. See [Turn signals and high beam](#turn-signals-and-high-beam) |
-| `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp. Leave it open on the bench (open = pressure OK) |
+| `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp (bench-confirmed). ATS has no oil-pressure warning to drive it, so `PIN_OIL_LAMP` is off by default. Leave it open on the bench (open = pressure OK) |
 | `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
 
 All other pins are vacant. In the car, the brake fluid-level and parking brake
