@@ -164,7 +164,9 @@ needed):
   which one reads positive. That's the sense side; the other is the return.
   Also check whether the return has continuity to cluster ground (position 3
   or 11). On a bench-tested 2005 cluster it's about 11 V, with position 2
-  positive (sense) and position 1 the return.
+  positive (sense) and position 1 the return, which is cluster ground. The
+  cluster feeds the sender through about 330 Ω: 20 Ω across the pins read
+  0.64 V (about 32 mA) and showed a full tank.
 - Put a resistor across 1/2 and turn the ignition off and on (the gauge moves
   slowly, and some clusters only jump to a new level at ignition on). Try
   about 22, 47, 100, 220 and 390 Ω, and note where the needle settles each
@@ -182,15 +184,16 @@ cluster sees one steady resistance between the two.
 
 | Part | Goes between |
 |---|---|
-| 390 Ω, 0.5 W | Position 2 (sense) and position 1 (return) |
-| 22 Ω, 1 W, in series with a logic-level N-MOSFET (IRLZ44N, IRLB8721...) | Sense side → 22 Ω → drain; source → return side |
+| 390 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
+| 22 Ω, 0.25 W, in series with a small N-MOSFET (2N7000, or any logic-level one) | Sense side → 22 Ω → drain; source → return side |
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
 | 100 Ω | Mega `D5` → MOSFET gate |
 | 10 kΩ | Gate → source (keeps it off while the Mega boots) |
 | Wire | MOSFET source / return side → Mega GND |
 
 The return side must be at cluster ground (step 1) for the Mega GND link to be
-safe. If it isn't, stop and ask before wiring this up.
+safe. If it isn't, stop and ask before wiring this up. The current is small
+(about 32 mA at most), so quarter-watt resistors and a 2N7000 are plenty.
 
 Then set `PIN_FUEL_SENDER 5` in `config.h`. The `F` field (0–100 %) then sets
 the PWM duty. The duty is zero at empty and fully on at full, and the gauge
