@@ -191,6 +191,11 @@ cluster sees one steady resistance between the two.
 
 ![Fuel sender stand-in wiring](docs/fuel_gauge_wiring.svg)
 
+Laid out on a double-sided 2 × 8 cm protoboard (parts on top, solder bridges
+underneath):
+
+![Fuel sender stand-in on a protoboard](docs/fuel_gauge_protoboard.svg)
+
 | Part | Goes between |
 |---|---|
 | 470 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
