@@ -74,8 +74,8 @@ the wire colours match a 2005 harness plug in this orientation.
 | 4 | `1G` | G/R (green/red) | IG1, ignition 12 V | 12 V supply + |
 | 5 | `1I` | GY/R (grey/red) | HS-CAN H, 500 kbit/s | Shield CAN-H |
 | 6 | `1K` | L/R (blue/red) | HS-CAN L, 500 kbit/s | Shield CAN-L |
-| 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus) | Leave open |
-| 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | Leave open |
+| 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus): high beam, turn arrows, SRS lamp | **Second** shield (or MCP2515 module) CAN-H, with `MS_CAN_ENABLED 1`. Not the gauge shield, which stays on 5/6 |
+| 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | **Second** shield (or MCP2515 module) CAN-L |
 | 9 | `1B` | B/Y (black/yellow) | Oil pressure switch (grounded = oil lamp on, bench-confirmed) | Leave open |
 | 10 | `1D` | — | Vacant | — |
 | 11 | `1F` | B/O (black/orange) | Ground | 12 V supply − and Arduino GND |
@@ -85,7 +85,12 @@ the wire colours match a 2005 harness plug in this orientation.
 | 15 | `1N` | — | Vacant | — |
 | 16 | `1P` | B/G (black/green) | Washer fluid-level sensor (only on cars with one) | Leave open |
 
-Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8.
+Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8. The two
+buses run at different speeds, so each needs its own shield: the first shield
+on 5/6 (gauges), a second one on 7/8 (lamps). See
+[Reaching the body bus](#reaching-the-body-bus-ms-can) for stacking the second
+shield. Without it, the high beam, turn arrows and SRS lamp aren't driven (the
+SRS lamp stays on).
 
 **24-pin plug, every position.** Counted with the plug held the same way, from
 the wire side: the top row is 1–12 from left to right, and the bottom row is
@@ -126,7 +131,7 @@ the car has a 10 A and a 15 A fuse on these lines.
 | Cluster pin | Wire | Signal | Notes |
 |---|---|---|---|
 | `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
-| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | High beam and turn arrows, via a second CAN module. See [Turn signals and high beam](#turn-signals-and-high-beam) |
+| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | To a **second** CAN shield or module (`MS_CAN_ENABLED 1`), not the gauge shield. Drives the high beam, turn arrows and SRS lamp. See [Reaching the body bus](#reaching-the-body-bus-ms-can) |
 | `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp (bench-confirmed). ATS has no oil-pressure warning to drive it, so `PIN_OIL_LAMP` is off by default. Leave it open on the bench (open = pressure OK) |
 | `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
 
