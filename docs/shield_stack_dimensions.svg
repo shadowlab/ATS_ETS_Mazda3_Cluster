@@ -3,7 +3,7 @@
 <marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#333"/></marker>
 </defs>
 <rect width="1240" height="1300" fill="#fff"/>
-<text x="620" y="36" text-anchor="middle" font-size="24" font-weight="bold">Mega 2560 + two Seeed CAN-BUS shields: outline (mm)</text>
+<text x="620" y="36" text-anchor="middle" font-size="24" font-weight="bold">Mega 2560 + two Seeed CAN-BUS shields, DB9 ports removed (mm)</text>
 <text x="620" y="62" text-anchor="middle" font-size="14" fill="#a33">Mega from Arduino's drawing; shield from Seeed's CAN-BUS Shield V2.0 drawing (A1.0). Gap between boards is estimated; check with calipers.</text>
 
 <!-- TOP VIEW: scale 8 px/mm, origin at (150, 520) = Mega lower-left (USB end on left) -->
@@ -21,8 +21,8 @@
   <rect x="0" y="-426" width="549" height="426" fill="#eaf5ec" fill-opacity="0.55" stroke="#2e7d32" stroke-width="3" stroke-dasharray="10 5"/>
   <text x="300" y="-340" text-anchor="middle" font-size="16" fill="#2e7d32" font-weight="bold">CAN-BUS shields (both, stacked)</text>
   <!-- DB9 overhang ~6 mm past USB end -->
-  <rect x="-45" y="-260" width="96" height="250" fill="#f6e6c8" stroke="#9a6a12" stroke-width="2"/>
-  <text x="3" y="-130" text-anchor="middle" font-size="13" fill="#9a6a12" transform="rotate(-90 3 -130)">DB9 (overhangs 5.6)</text>
+  
+  
   <!-- Mounting holes (Arduino Mega drawing) -->
   <g fill="#fff" stroke="#1f5f8b" stroke-width="2">
     <circle cx="111.8" cy="-20.3" r="13"/><circle cx="121.9" cy="-406.4" r="13"/>
@@ -40,10 +40,10 @@
   <text x="406" y="62" text-anchor="middle" font-size="15" font-weight="bold">101.6 (Mega)</text>
   <line x1="0" y1="90" x2="549" y2="90" stroke="#2e7d32" marker-start="url(#a)" marker-end="url(#a)"/>
   <line x1="549" y1="5" x2="549" y2="100" stroke="#2e7d32" stroke-dasharray="4 3"/>
-  <text x="275" y="112" text-anchor="middle" font-size="15" font-weight="bold" fill="#2e7d32">68.6 (shield board)</text>
-  <line x1="-45" y1="140" x2="549" y2="140" stroke="#9a6a12" marker-start="url(#a)" marker-end="url(#a)"/>
-  <line x1="-45" y1="-5" x2="-45" y2="150" stroke="#9a6a12" stroke-dasharray="4 3"/>
-  <text x="250" y="162" text-anchor="middle" font-size="15" font-weight="bold" fill="#9a6a12">74.2 overall, with DB9</text>
+  <text x="275" y="112" text-anchor="middle" font-size="15" font-weight="bold" fill="#2e7d32">68.6 (shield, overall with no DB9)</text>
+  
+  
+  
   <line x1="860" y1="-426" x2="860" y2="0" stroke="#333" marker-start="url(#a)" marker-end="url(#a)"/>
   <line x1="818" y1="-426" x2="870" y2="-426" stroke="#333"/><line x1="818" y1="0" x2="870" y2="0" stroke="#333"/>
   <text x="872" y="-205" font-size="15" font-weight="bold">53.3</text>
@@ -63,20 +63,20 @@
   <rect x="0" y="-114" width="549" height="13" fill="#2e7d32"/>
   <text x="560" y="-104" font-size="13">Shield 1 (HS-CAN, CS D9)</text>
   <!-- shield 1 tall parts 14.7 -->
-  <rect x="-45" y="-232" width="96" height="118" fill="#f6e6c8" stroke="#9a6a12"/>
-  <text x="3" y="-170" text-anchor="middle" font-size="12" fill="#9a6a12">DB9</text>
+  
+  
   <rect x="80" y="-232" width="90" height="118" fill="#ddd" stroke="#666"/>
-  <text x="125" y="-170" text-anchor="middle" font-size="11">terminal</text>
+  <text x="125" y="-170" text-anchor="middle" font-size="11">screw</text><text x="125" y="-155" text-anchor="middle" font-size="11">terminal</text>
   <rect x="200" y="-202" width="330" height="88" fill="#333" opacity="0.12"/>
   <text x="365" y="-150" text-anchor="middle" font-size="12" fill="#555">headers, ≈ 11</text>
   <rect x="0" y="-215" width="549" height="13" fill="#2e7d32"/>
   <text x="560" y="-205" font-size="13">Shield 2 (MS-CAN, CS D10, D2 pin cut)</text>
-  <rect x="-45" y="-333" width="96" height="118" fill="#f6e6c8" stroke="#9a6a12"/>
-  <text x="3" y="-270" text-anchor="middle" font-size="12" fill="#9a6a12">DB9</text>
+  
+  
   <rect x="80" y="-333" width="90" height="118" fill="#ddd" stroke="#666"/>
   <!-- clash -->
-  <rect x="-45" y="-232" width="215" height="30" fill="#e53935" opacity="0.35"/>
-  <text x="180" y="-238" font-size="13" fill="#c62828" font-weight="bold">clash ≈ 3.7: shield 1's DB9 and terminal (14.7) are taller than the ≈ 11 gap</text>
+  <rect x="80" y="-232" width="90" height="30" fill="#e53935" opacity="0.45"/>
+  <text x="180" y="-238" font-size="13" fill="#c62828" font-weight="bold">clash ≈ 3.7: shield 1's screw terminal (14.7) is still taller than the ≈ 11 gap</text>
   <!-- dims -->
   <line x1="-110" y1="0" x2="-110" y2="-333" stroke="#333" marker-start="url(#a)" marker-end="url(#a)"/>
   <line x1="-115" y1="0" x2="-60" y2="0" stroke="#333"/><line x1="-115" y1="-333" x2="-50" y2="-333" stroke="#333"/>
@@ -85,8 +85,8 @@
   <text x="708" y="-52" font-size="12">≈ 11 board gap</text>
   <line x1="660" y1="-114" x2="660" y2="-232" stroke="#9a6a12" marker-start="url(#a)" marker-end="url(#a)"/>
   <line x1="170" y1="-232" x2="665" y2="-232" stroke="#9a6a12" stroke-dasharray="3 3"/>
-  <text x="668" y="-170" font-size="12" fill="#9a6a12">14.7 tallest parts</text>
-  <text x="-60" y="35" font-size="12">From Seeed's drawing: PCB 1.6, DB9 and screw terminal 14.7 above the PCB, headers 11.0 below it. The board gap is that 11.0 header length (an estimate).</text>
-  <text x="-60" y="55" font-size="12">If the shields clash, add a second set of stacking headers between them (about +11 gap) or use the loose MCP2515 module instead. Tape the top of the Mega's USB-B jack.</text>
+  <text x="668" y="-170" font-size="12" fill="#9a6a12">14.7 screw terminal</text>
+  <text x="-60" y="35" font-size="12">From Seeed's drawing: PCB 1.6, screw terminal 14.7 above the PCB, headers 11.0 below it. The board gap is that 11.0 header length (an estimate).</text>
+  <text x="-60" y="55" font-size="12">With the DB9s gone, the bottom shield's screw terminal is the only part in the way: remove it too and solder the CAN wires to its holes, or add stacking headers. Tape the Mega's USB-B jack.</text>
 </g>
 </svg>

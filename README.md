@@ -266,10 +266,12 @@ MCP2515. Either option works:
 ![Mega with two stacked shields, outline in mm](docs/shield_stack_dimensions.svg)
 
 Mega figures are from Arduino's drawing, shield figures from Seeed's CAN-BUS Shield V2.0
-drawing. The gap between stacked boards is an estimate. The lower shield's DB9 and
-screw terminal stand 14.7 mm tall, more than that gap, so check they clear the
-upper shield before stacking. If they don't, add a second set of stacking headers
-between the shields, or use the loose module below.
+drawing, shown with the DB9 ports removed (the CAN wires go to the screw
+terminals instead). The gap between stacked boards is an estimate. The lower
+shield's screw terminal stands 14.7 mm tall, more than that gap, so check it
+clears the upper shield before stacking. If it doesn't, remove it and solder the
+CAN wires to its holes, add a second set of stacking headers between the
+shields, or use the loose module below.
 
 **A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
 `MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
