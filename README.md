@@ -477,6 +477,34 @@ before it reaches the cluster:
 - **Fuel in litres or gallons**: the cluster wants a percentage. If SimTools
   gives the amount in the tank, set `FUEL_SCALE` to `100 / tank capacity`.
 
+## What's mapped so far
+
+Everything below was found on a 2005 (BK) cluster on the bench. HS-CAN is the
+gauge bus (500 kbit/s, positions 5/6, the first shield). MS-CAN is the body bus
+(125 kbit/s, positions 7/8, the second shield). "Wired" means a plain wire on
+the cluster plug, not CAN.
+
+| Gauge or lamp | Bus | Frame / pin | Status |
+|---|---|---|---|
+| Speedometer | HS-CAN | `0x201` bytes 4–5 | Working |
+| Tachometer | HS-CAN | `0x201` bytes 0–1 | Working |
+| Coolant temperature | HS-CAN | `0x420` byte 0 | Working |
+| Battery (charge) lamp | HS-CAN | `0x420` byte 4 = `0x02` | Working |
+| Check-engine lamp, steady / flashing | HS-CAN | `0x420` byte 4 = `0x40` / `0x80` | Working |
+| Gear display P/R/N/D | HS-CAN | `0x228` byte 0 | Working (manual "M" not found) |
+| AT warning lamp | HS-CAN | `0x228` (any) | On by default; sending the frame turns it off |
+| ABS lamp | HS-CAN | `0x212` byte 4 = `0xFF` flashes it | Found, not used |
+| Traction control lamp | HS-CAN | `0x250`–`0x25F` | Found, but latches until power-off, so never sent |
+| Cruise lamps | HS-CAN | somewhere in `0x4E0`–`0x4EF` | Block found, bit not narrowed |
+| High beam indicator | MS-CAN | `0x433` byte 3 = `0x40` | Working |
+| Turn arrows, left / right | MS-CAN | `0x265` byte 0 = `0x20` / `0x40` | Working (firmware flashes them); hazards = both |
+| Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
+| SRS airbag lamp | MS-CAN | `0x460` (all zeros) | On by default; sending the frame turns it off |
+| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Gauge confirmed with resistors; PWM stand-in untested |
+| Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
+| BRAKE (parking brake) lamp | — | not found | On by default; stays on with CAN unplugged |
+| Odometer | — | not found | Not driven |
+
 ## CAN frames sent
 
 The cluster sends some frames of its own on HS-CAN (seen at boot on a 2005
