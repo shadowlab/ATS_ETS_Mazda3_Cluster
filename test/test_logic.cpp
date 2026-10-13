@@ -139,6 +139,22 @@ static void testTurnLampsFrame() {
   for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
 }
 
+static void testFuelSender() {
+  using namespace mazda3;
+  CHECK(near(fuelSenderOhms(100, 20, 400), 20));
+  CHECK(near(fuelSenderOhms(0, 20, 400), 400));
+  CHECK(near(fuelSenderOhms(50, 20, 400), 210));
+  CHECK(near(fuelSenderOhms(150, 20, 400), 20));   // clamped
+  CHECK(near(fuelSenderOhms(-5, 20, 400), 400));
+  // 390 ohm fixed + 22 ohm switched: empty = MOSFET off, full = fully on.
+  CHECK(fuelSenderDuty(400, 390, 22) == 0);
+  CHECK(fuelSenderDuty(20, 390, 22) == 255);
+  // 210 ohms: (1/210 - 1/390) * 22 = 0.048 -> 12/255.
+  CHECK(fuelSenderDuty(210, 390, 22) == 12);
+  // Duty rises as the target resistance falls.
+  CHECK(fuelSenderDuty(100, 390, 22) > fuelSenderDuty(200, 390, 22));
+}
+
 static void testTurnBlinker() {
   mazda3::TurnBlinker t = {};
   CHECK(!t.update(false, 1000, 333));
@@ -233,6 +249,7 @@ int main() {
   testTransmissionFrame();
   testTurnLampsFrame();
   testTurnBlinker();
+  testFuelSender();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

@@ -129,6 +129,30 @@ inline uint8_t clampU8(float v) {
   return (uint8_t)(v + 0.5f);
 }
 
+// ------------------------------------------------- Fuel sender emulation
+// The fuel gauge isn't on CAN: the cluster reads the tank sender's resistance
+// on 24-pin positions 1/2 (low = full, high = empty). The board stands in for
+// it with a fixed resistor across the pins plus a second, smaller resistor
+// switched in by a MOSFET on a PWM pin, with a capacitor to smooth the
+// switching. Averaged, the pair looks like 1 / (1/fixed + duty/switched).
+// Not yet tested on a real cluster.
+
+// Fuel % to the sender resistance it should show, straight line between the
+// full and empty readings.
+inline float fuelSenderOhms(float pct, float fullOhms, float emptyOhms) {
+  if (pct <= 0.0f) return emptyOhms;
+  if (pct >= 100.0f) return fullOhms;
+  return emptyOhms + (fullOhms - emptyOhms) * pct / 100.0f;
+}
+
+// PWM duty (0-255) that makes the fixed/switched resistor pair look like
+// targetOhms. Clamped to what the pair can reach.
+inline uint8_t fuelSenderDuty(float targetOhms, float fixedOhms, float switchedOhms) {
+  if (targetOhms <= 0.0f) return 255;
+  float duty = (1.0f / targetOhms - 1.0f / fixedOhms) * switchedOhms;
+  return clampU8(duty * 255.0f);
+}
+
 inline uint16_t encodeSpeed(float kmh) {
   return clampU16(kmh * SPEED_CAN_FACTOR + SPEED_CAN_OFFSET);
 }

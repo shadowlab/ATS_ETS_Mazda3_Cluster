@@ -118,6 +118,24 @@
 // its base pin here (through ~1 kOhm), e.g. 22.
 #define PIN_OIL_LAMP    -1
 
+// ------------------------------------------------------------ Fuel gauge
+// The fuel gauge reads the tank sender's resistance on 24-pin positions 1/2,
+// not CAN. To drive it from the game, fit the sender stand-in from the README
+// (a FUEL_FIXED_OHMS resistor across the pins, plus a FUEL_SWITCHED_OHMS
+// resistor switched by a logic-level MOSFET, plus a capacitor) and give the
+// MOSFET's gate pin here. It must be a PWM pin; D5 is free. -1 = off.
+// Not yet tested on a real cluster.
+#define PIN_FUEL_SENDER -1
+// Sender resistance at a full and an empty tank. These come from the Mazda 3
+// service manual's sender table for later engines (about 20 ohms at the top
+// of the float's travel, 400 at the bottom); check them on your cluster with
+// fixed resistors before trusting them (see README).
+#define FUEL_SENDER_FULL_OHMS  20.0f
+#define FUEL_SENDER_EMPTY_OHMS 400.0f
+// The two resistors in the stand-in. Together they reach about 21-390 ohms.
+#define FUEL_FIXED_OHMS    390.0f
+#define FUEL_SWITCHED_OHMS 22.0f
+
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
 

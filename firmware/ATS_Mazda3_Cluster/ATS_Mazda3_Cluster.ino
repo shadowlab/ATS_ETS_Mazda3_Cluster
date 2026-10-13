@@ -9,7 +9,7 @@
 //  Library:  "CAN-BUS Shield" by Seeed Studio (Seeed_Arduino_CAN) v2.x.
 //
 //  Serial fields (see README for the full table):
-//    R rpm   S speed   T coolant   A throttle   F fuel %
+//    R rpm   S speed   T coolant   A throttle   F fuel % (analog sender, optional)
 //    E check-engine   B charge   O oil pressure     (0/1 warning lamps)
 //    P parking brake                                (0/1, CAN)
 //    L left turn   Y right turn   H high beam      (0/1, optional GPIO, off by default)
@@ -169,6 +169,13 @@ void initIndicator(int pin) {
   setIndicator(pin, false);
 }
 
+// Sets the fuel sender stand-in's PWM duty to match cluster.fuelPct.
+void updateFuelSender() {
+  if (PIN_FUEL_SENDER < 0) return;
+  float ohms = mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS, FUEL_SENDER_EMPTY_OHMS);
+  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS));
+}
+
 float scaled(char key, float scale, float offset) {
   return parser.value(key) * scale + offset;
 }
@@ -202,6 +209,7 @@ void applyTelemetry() {
   setIndicator(PIN_HIGH_BEAM, parser.value('H') >= 0.5f);
   setIndicator(PIN_PARK_BRAKE, cluster.parkingBrake);
   setIndicator(PIN_OIL_LAMP, cluster.oilWarning);
+  updateFuelSender();
 }
 
 // Game paused or closed: park the needles, lamps off.
@@ -700,6 +708,8 @@ void setup() {
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;
   cluster.fuelPct = 50;
+  if (PIN_FUEL_SENDER >= 0) pinMode(PIN_FUEL_SENDER, OUTPUT);
+  updateFuelSender();
 
   while (CAN.begin(CAN_SPEED, CAN_CLOCK) != CAN_OK) {
     DEBUG_PORT.println(F("CAN init failed - check shield, CS pin and crystal setting"));

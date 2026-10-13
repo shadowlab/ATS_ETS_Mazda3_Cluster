@@ -98,8 +98,8 @@ the wire side: the top row is 1–12 from left to right, and the bottom row is
 
 | Position | Factory pin | Wire | Signal | Bench |
 |---|---|---|---|---|
-| 1 | `2W` | BR/R (brown/red) | Fuel gauge sender, one side | Leave open for now. The fuel gauge reads this sender, not CAN |
-| 2 | `2U` | W/R (white/red) | Fuel gauge sender, other side | Leave open |
+| 1 | `2W` | BR/R (brown/red) | Fuel gauge sender, one side | Open (the gauge should read empty), or the sender stand-in. See [Fuel gauge](#fuel-gauge) |
+| 2 | `2U` | W/R (white/red) | Fuel gauge sender, other side | As above |
 | 3 | `2S` | GY/O (grey/orange) | Immobilizer coil antenna | Leave open (the security lamp may blink) |
 | 4 | `2Q` | W/G (white/green) | Immobilizer coil antenna | Leave open |
 | 5 | `2O` | W (white) | Car navigation unit (only on cars with nav) | Leave open |
@@ -147,6 +147,53 @@ jumper or switch). With both ends terminated and the power off, you should
 read about 60 Ω between the shield's CAN-H and CAN-L.
 
 Twist the CAN-H/CAN-L pair, and keep it away from the 12 V supply leads.
+
+### Fuel gauge
+
+The fuel gauge isn't on CAN. The cluster reads the tank sender's resistance
+on 24-pin positions 1/2 (`2W`/`2U`): low resistance is full, high is empty.
+The 2005 manual on lemon-manuals.la gives no resistance values. The Mazda 3
+manual for later engines lists about 20 Ω with the float at the top and
+about 400 Ω at the bottom, and the BK sender is probably close, but this
+hasn't been checked on a real cluster yet.
+
+**1. Check the gauge with fixed resistors first** (cluster powered, no game
+needed):
+
+- With nothing on positions 1/2, measure the DC voltage across them, and note
+  which one reads positive. That's the sense side; the other is the return.
+  Also check whether the return has continuity to cluster ground (position 3
+  or 11).
+- Put a resistor across 1/2 and turn the ignition off and on (the gauge moves
+  slowly, and some clusters only jump to a new level at ignition on). Try
+  about 22, 47, 100, 220 and 390 Ω, and note where the needle settles each
+  time. If 22 Ω isn't full or 390 Ω isn't empty, change
+  `FUEL_SENDER_FULL_OHMS`/`FUEL_SENDER_EMPTY_OHMS` in `config.h` (and the
+  resistors below) to match.
+- The cluster's own self-test also sweeps the gauge: hold the trip button,
+  turn the ignition on, keep holding about 5 s until `tESt` shows, release
+  within 3 s, then press the button to step to check code 23 (fuel gauge).
+
+**2. Sender stand-in** (not yet tested on a real cluster). A fixed resistor
+sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
+in parallel to pull it toward full. A capacitor smooths the switching, so the
+cluster sees one steady resistance between the two.
+
+| Part | Goes between |
+|---|---|
+| 390 Ω, 0.5 W | Position 1 and position 2 |
+| 22 Ω, 1 W, in series with a logic-level N-MOSFET (IRLZ44N, IRLB8721...) | Sense side → 22 Ω → drain; source → return side |
+| 470 µF, 16 V or more, electrolytic | Sense side (+) and return side (−) |
+| 100 Ω | Mega `D5` → MOSFET gate |
+| 10 kΩ | Gate → source (keeps it off while the Mega boots) |
+| Wire | MOSFET source / return side → Mega GND |
+
+The return side must be at cluster ground (step 1) for the Mega GND link to be
+safe. If it isn't, stop and ask before wiring this up.
+
+Then set `PIN_FUEL_SENDER 5` in `config.h`. The `F` field (0–100 %) then sets
+the PWM duty. The duty is zero at empty and fully on at full, and the gauge
+moves between the two.
 
 ### Turn signals and high beam
 
@@ -388,7 +435,7 @@ Each field is an upper-case letter followed by a number, for example
 | `S` | Vehicle speed | mph |
 | `T` | Coolant temperature | °C |
 | `A` | Throttle / accelerator | % |
-| `F` | Fuel level | % (0 empty, 100 full). Not shown yet: the fuel gauge reads the analog tank sender, not CAN |
+| `F` | Fuel level | % (0 empty, 100 full). Needs the sender stand-in on 24-pin positions 1/2 and `PIN_FUEL_SENDER` set; see [Fuel gauge](#fuel-gauge) |
 | `E` | Check-engine lamp | 0/1, or `2` to flash it |
 | `B` | Battery/charge lamp | 0/1 |
 | `O` | Oil pressure lamp | 0/1. Not on CAN: needs `PIN_OIL_LAMP` and a transistor on position 9 (see `config.h`) |
