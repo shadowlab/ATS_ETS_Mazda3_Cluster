@@ -132,8 +132,10 @@
 // fixed resistors before trusting them (see README).
 #define FUEL_SENDER_FULL_OHMS  20.0f
 #define FUEL_SENDER_EMPTY_OHMS 400.0f
-// The two resistors in the stand-in. Together they reach about 21-390 ohms.
-#define FUEL_FIXED_OHMS    390.0f
+// The two resistors in the stand-in. Together they reach about 21-470 ohms.
+// Anything at or above FUEL_SENDER_EMPTY_OHMS works for the fixed one: the
+// PWM pulls it down to the empty reading.
+#define FUEL_FIXED_OHMS    470.0f
 #define FUEL_SWITCHED_OHMS 22.0f
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.

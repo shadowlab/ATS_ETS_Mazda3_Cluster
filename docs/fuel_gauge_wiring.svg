@@ -17,7 +17,7 @@
 <line x1="820" y1="190" x2="820" y2="250" stroke="#222" stroke-width="2"/>
 <rect x="808" y="250" width="24" height="90" fill="#fff" stroke="#222" stroke-width="2"/>
 <line x1="820" y1="340" x2="820" y2="400" stroke="#222" stroke-width="2"/>
-<text x="836" y="290" font-size="15" font-weight="bold">390 Ω</text>
+<text x="836" y="290" font-size="15" font-weight="bold">470 Ω</text>
 <text x="836" y="308" font-size="12">sets EMPTY</text>
 <circle cx="820" cy="190" r="4"/><circle cx="820" cy="400" r="4"/>
 
@@ -83,7 +83,7 @@
 <text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
 <text x="40" y="514" font-size="14">• Pin numbers are Lab's 24-pin numbering (top row 1 to 12, left to right). Pin 1 measured ~1 Ω to cluster ground, so the Mega GND link is OK.</text>
 <text x="40" y="537" font-size="14">• 2N7000 legs, flat face toward you, legs down: Source, Gate, Drain (left to right); check your part's datasheet. Quarter-watt resistors are fine (max ~32 mA).</text>
-<text x="40" y="560" font-size="14">• Then set PIN_FUEL_SENDER 5 in config.h. Duty 0 = 390 Ω (empty), full duty ≈ 21 Ω (full). The capacitor smooths the switching.</text>
+<text x="40" y="560" font-size="14">• Then set PIN_FUEL_SENDER 5 in config.h. Duty ≈ 1% = 400 Ω (empty), full duty ≈ 21 Ω (full). The capacitor smooths the switching.</text>
 <text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground.</text>
 <text x="40" y="606" font-size="14">• Bench readings: 20 Ω = full, 100 Ω ≈ 3/4. Cluster feeds the sender from ~11 V through ~330 Ω.</text>
 </svg>

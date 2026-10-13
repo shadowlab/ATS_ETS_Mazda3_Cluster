@@ -153,6 +153,10 @@ static void testFuelSender() {
   CHECK(fuelSenderDuty(210, 390, 22) == 12);
   // Duty rises as the target resistance falls.
   CHECK(fuelSenderDuty(100, 390, 22) > fuelSenderDuty(200, 390, 22));
+  // Default 470 ohm fixed resistor: a little duty still reaches empty.
+  CHECK(fuelSenderDuty(470, 470, 22) == 0);
+  CHECK(fuelSenderDuty(400, 470, 22) == 2);
+  CHECK(fuelSenderDuty(20, 470, 22) == 255);
 }
 
 static void testTurnBlinker() {
