@@ -166,7 +166,9 @@ needed):
   or 11). On a bench-tested 2005 cluster it's about 11 V, with position 2
   positive (sense) and position 1 the return, which is cluster ground. The
   cluster feeds the sender through about 330 Ω: 20 Ω across the pins read
-  0.64 V (about 32 mA) and showed a full tank.
+  0.64 V (about 32 mA) and showed a full tank, and 100 Ω showed about 3/4,
+  which matches the straight line between 20 Ω (full) and 400 Ω (empty)
+  that the firmware uses.
 - Put a resistor across 1/2 and turn the ignition off and on (the gauge moves
   slowly, and some clusters only jump to a new level at ignition on). Try
   about 22, 47, 100, 220 and 390 Ω, and note where the needle settles each
