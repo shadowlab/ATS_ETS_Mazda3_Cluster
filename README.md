@@ -263,6 +263,10 @@ check works on the gauge bus with the normal settings (`HS-CAN (500k)`).
 To drive the gauges and the body bus at the same time, you need a second
 MCP2515. Either option works:
 
+![Mega with two stacked shields, outline in mm](docs/shield_stack_dimensions.svg)
+
+Mega figures are from Arduino's drawing; the shield and height figures are approximate.
+
 **A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
 `MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
 
