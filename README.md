@@ -163,7 +163,8 @@ needed):
 - With nothing on positions 1/2, measure the DC voltage across them, and note
   which one reads positive. That's the sense side; the other is the return.
   Also check whether the return has continuity to cluster ground (position 3
-  or 11).
+  or 11). On a bench-tested 2005 cluster it's about 11 V, with position 2
+  positive (sense) and position 1 the return.
 - Put a resistor across 1/2 and turn the ignition off and on (the gauge moves
   slowly, and some clusters only jump to a new level at ignition on). Try
   about 22, 47, 100, 220 and 390 Ω, and note where the needle settles each
@@ -181,9 +182,9 @@ cluster sees one steady resistance between the two.
 
 | Part | Goes between |
 |---|---|
-| 390 Ω, 0.5 W | Position 1 and position 2 |
+| 390 Ω, 0.5 W | Position 2 (sense) and position 1 (return) |
 | 22 Ω, 1 W, in series with a logic-level N-MOSFET (IRLZ44N, IRLB8721...) | Sense side → 22 Ω → drain; source → return side |
-| 470 µF, 16 V or more, electrolytic | Sense side (+) and return side (−) |
+| 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
 | 100 Ω | Mega `D5` → MOSFET gate |
 | 10 kΩ | Gate → source (keeps it off while the Mega boots) |
 | Wire | MOSFET source / return side → Mega GND |
