@@ -591,7 +591,6 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   ABS; `0x250`–`0x25F` lights TCS) but not driven. Never send `0x250`–`0x25F`:
   the TCS lamp latches on until the cluster is powered off.
 - **Immobilizer lamp:** found (MS `0x265` byte 0 = `0x10`) but not driven.
-- **Door and seatbelt lamps:** not looked for yet.
 
 ## Troubleshooting
 
