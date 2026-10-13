@@ -491,7 +491,8 @@ the cluster plug, not CAN.
 | Coolant temperature | HS-CAN | `0x420` byte 0 | Working |
 | Battery (charge) lamp | HS-CAN | `0x420` byte 4 = `0x02` | Working |
 | Check-engine lamp, steady / flashing | HS-CAN | `0x420` byte 4 = `0x40` / `0x80` | Working |
-| Gear display P/R/N/D | HS-CAN | `0x228` byte 0 | Working (manual "M" not found) |
+| Gear display P/R/N/D | HS-CAN | `0x228` byte 0 | Working |
+| Manual "M" indicator | HS-CAN | somewhere in `0x220`–`0x22F` | Block found, ID and bit not narrowed |
 | AT warning lamp | HS-CAN | `0x228` (any) | On by default; sending the frame turns it off |
 | ABS lamp | HS-CAN | `0x212` byte 4 = `0xFF` flashes it | Found, not used |
 | Traction control lamp | HS-CAN | `0x250`–`0x25F` | Found, but latches until power-off, so never sent |
@@ -582,7 +583,10 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 - **Odometer:** not driven, so it won't put real distance on your cluster. The
   cluster's own HS frames (`0x046`, `0x190`, `0x430`, `0x433`) never change, so
   they don't carry it.
-- **Gear display:** P, R, N and D work. The manual "M" value hasn't been found.
+- **Gear display:** P, R, N and D work. The manual "M" indicator lit during a
+  scan of HS `0x220`–`0x22F`, but the exact ID and bit aren't narrowed down.
+  Since `0x228` byte 0 is the gear, `#sweep h 228 0` (values past `04`) is the
+  first thing to try, then the other bytes of `0x228`.
 - **Oil pressure lamp:** a wired switch (16-pin position 9), not CAN. ATS has no
   oil-pressure warning, so it's left unused (`PIN_OIL_LAMP` can drive it).
 - **Cruise lamps:** not driven. A scan lit them somewhere in HS
