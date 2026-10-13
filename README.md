@@ -193,7 +193,7 @@ cluster sees one steady resistance between the two.
 
 | Part | Goes between |
 |---|---|
-| 390 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
+| 390 Ω, 0.25 W (or 330 Ω + 68 Ω in series; then set `FUEL_FIXED_OHMS 398.0f`) | Position 2 (sense) and position 1 (return) |
 | 22 Ω, 0.25 W, in series with a small N-MOSFET (2N7000, or any logic-level one) | Sense side → 22 Ω → drain; source → return side |
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
 | 100 Ω | Mega `D5` → MOSFET gate |
