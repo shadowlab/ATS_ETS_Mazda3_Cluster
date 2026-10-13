@@ -484,7 +484,7 @@ gauge bus (500 kbit/s, positions 5/6, the first shield). MS-CAN is the body bus
 (125 kbit/s, positions 7/8, the second shield). "Wired" means a plain wire on
 the cluster plug, not CAN.
 
-| Gauge or lamp | Bus | Frame / pin | Status |
+| Gauge or lamp | Bus | Address (CAN ID), byte = value, or pin | Status |
 |---|---|---|---|
 | Speedometer | HS-CAN | `0x201` bytes 4–5 | Working |
 | Tachometer | HS-CAN | `0x201` bytes 0–1 | Working |
