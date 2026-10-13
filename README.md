@@ -566,14 +566,32 @@ frame that works, add it to `mazda3_can.h` permanently.
 
 ## Known limitations
 
-- **Odometer:** not driven, so it won't put real distance on your cluster.
-- **Cruise control lamp:** not driven. The matrix lists `0x201` byte 6, which
-  is also the throttle byte, and doesn't give a bit value. If the green cruise
-  lamp flickers with throttle, that byte is the cause. Try values with
-  `#201 ...` to find the cruise bit.
-- **Other lamps** (airbag, ABS, TCS, door, seatbelt): may stay lit because
-  their modules aren't present. Find their frames with the `#` command if they
-  bother you.
+See [What's mapped so far](#whats-mapped-so-far) for everything that works.
+
+- **BRAKE (parking brake) lamp:** on all the time on the bench, and nothing
+  found turns it off yet. Ruled out so far: all-zero and all-`FF` scans of
+  both buses, HS `0x212` byte 4 (`0x40` does nothing, `FF` flashes ABS), MS
+  `0x190`/`0x205`, and grounding 24-pin position 6. It stays on with CAN
+  unplugged. Next to try: `#sweep h 212 <byte>` on the other bytes of `0x212`.
+  The `P` field still sends the old RX-8 bit, which has no effect.
+- **Fuel gauge:** not on CAN. It needs the sender stand-in circuit on 24-pin
+  positions 1/2 (see [Fuel gauge](#fuel-gauge)). Fixed resistors move the
+  gauge as expected, but the PWM circuit hasn't been tested on a cluster yet.
+- **Turn arrows, high beam and SRS lamp:** need the second shield on the body
+  bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
+- **Odometer:** not driven, so it won't put real distance on your cluster. The
+  cluster's own HS frames (`0x046`, `0x190`, `0x430`, `0x433`) never change, so
+  they don't carry it.
+- **Gear display:** P, R, N and D work. The manual "M" value hasn't been found.
+- **Oil pressure lamp:** a wired switch (16-pin position 9), not CAN. ATS has no
+  oil-pressure warning, so it's left unused (`PIN_OIL_LAMP` can drive it).
+- **Cruise lamps:** not driven. A scan lit them somewhere in HS
+  `0x4E0`–`0x4EF`; the exact ID and bit aren't narrowed down.
+- **ABS and traction control lamps:** found (HS `0x212` byte 4 = `FF` flashes
+  ABS; `0x250`–`0x25F` lights TCS) but not driven. Never send `0x250`–`0x25F`:
+  the TCS lamp latches on until the cluster is powered off.
+- **Immobilizer lamp:** found (MS `0x265` byte 0 = `0x10`) but not driven.
+- **Door and seatbelt lamps:** not looked for yet.
 
 ## Troubleshooting
 
