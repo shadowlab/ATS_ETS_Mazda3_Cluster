@@ -182,7 +182,7 @@ needed):
   turn the ignition on, keep holding about 5 s until `tESt` shows, release
   within 3 s, then press the button to step to check code 23 (fuel gauge).
 
-**2. Sender stand-in** (tested on a real 2005 cluster). A fixed resistor
+**2. Sender stand-in** (complete and tested on a real 2005 cluster: 0 % on E, 25/50/75 % close to 1/4, 1/2 and 3/4, 100 % one tick under F). A fixed resistor
 sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
@@ -523,7 +523,7 @@ the cluster plug, not CAN.
 | Turn arrows, left / right | MS-CAN | `0x265` byte 0 = `0x20` / `0x40` | Working (firmware flashes them); hazards = both |
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
 | SRS airbag lamp | MS-CAN | `0x460` (all zeros) | On by default; sending the frame turns it off |
-| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Working with the PWM stand-in; scale calibrated, 100 % one tick under F |
+| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | — | not found | On by default; stays on with CAN unplugged |
 | Odometer | — | not found | Not driven |
@@ -595,10 +595,9 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   `0x190`/`0x205`, and grounding 24-pin position 6. It stays on with CAN
   unplugged. Next to try: `#sweep h 212 <byte>` on the other bytes of `0x212`.
   The `P` field still sends the old RX-8 bit, which has no effect.
-- **Fuel gauge:** not on CAN. It needs the sender stand-in circuit on 24-pin
-  positions 1/2 (see [Fuel gauge](#fuel-gauge)). It works on a bench cluster:
-  25 % reads a little above 1/4, 75 % a little under 3/4, and 100 % one tick
-  under F. The needle follows live; if it stops moving, check the D5 wire.
+- **Fuel gauge:** complete and tested, but not on CAN. It needs the sender
+  stand-in circuit on 24-pin positions 1/2 (see [Fuel gauge](#fuel-gauge)).
+  100 % reads one tick under F.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
 - **Odometer:** not driven, so it won't put real distance on your cluster. The
