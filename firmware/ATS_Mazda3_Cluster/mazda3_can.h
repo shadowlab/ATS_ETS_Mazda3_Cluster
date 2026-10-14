@@ -27,9 +27,9 @@ const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
 // the analog tank sender (24-pin 2U/2W) instead.
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
 // Bench-tested on a 2005 cluster: the AT warning lamp is on until 0x228 is
-// heard, and all-zero data turns it off. Byte 0 is the gear display (codes
-// below). Traction control and manual-mode lamps live in the 0x220-0x22F
-// block too (bits not yet mapped).
+// heard, and all-zero data turns it off. Byte 0 is the gear display and
+// byte 1 bit 0x80 the manual-mode lamp (codes below). Traction control lives
+// in the 0x220-0x22F block too (bits not yet mapped).
 const uint16_t ID_TRANSMISSION = 0x228;
 // Body bus (MS-CAN, 125 kbit/s, cluster 1M/1O). Separate from the cluster's
 // own HS 0x433 above.
@@ -67,22 +67,37 @@ const uint8_t BODY_B3_HIGH_BEAM      = 0x40;  // MS 0x433 byte 3
 const uint8_t TURN_B0_LEFT           = 0x20;  // MS 0x265 byte 0
 const uint8_t TURN_B0_RIGHT          = 0x40;  // MS 0x265 byte 0
 
-// 0x228 byte 0, bench-tested on a 2005 cluster. 0 shows no gear.
+// 0x228 byte 0, bench-tested on a 2005 cluster. 0 shows no gear. Gears 1-6
+// show as a number: the gear in the high nibble with D's 4 in the low one
+// (0x14 = 1st ... 0x64 = 6th).
 const uint8_t GEAR_NONE    = 0;
 const uint8_t GEAR_PARK    = 1;
 const uint8_t GEAR_REVERSE = 2;
 const uint8_t GEAR_NEUTRAL = 3;
 const uint8_t GEAR_DRIVE   = 4;
+const uint8_t GEAR_MAX_NUMBER = 6;
+// 0x228 byte 1: manual-mode lamp. Bench-tested; 0x40-0x79 light the AT
+// warning lamp instead, so keep the rest of the byte clear.
+const uint8_t TRANS_B1_MANUAL = 0x80;
 
-// Game gear (negative = reverse, 0 = neutral, positive = any forward gear,
-// GEAR_INPUT_PARK = park) to the cluster's P/R/N/D display.
+// Game gear (negative = reverse, 0 = neutral, positive = forward gear,
+// GEAR_INPUT_PARK = park) to the cluster's gear display. With showNumber,
+// forward gears show as 1-6 (anything higher shows 6); without it, as D.
 const float GEAR_INPUT_PARK = 99.0f;
-inline uint8_t gearFromGame(float gear) {
+inline uint8_t gearFromGame(float gear, bool showNumber = false) {
   if (gear >= GEAR_INPUT_PARK - 0.5f) return GEAR_PARK;
   if (gear <= -0.5f) return GEAR_REVERSE;
-  if (gear >= 0.5f) return GEAR_DRIVE;
+  if (gear >= 0.5f) {
+    if (!showNumber) return GEAR_DRIVE;
+    int n = (int)(gear + 0.5f);
+    if (n > GEAR_MAX_NUMBER) n = GEAR_MAX_NUMBER;
+    return (uint8_t)((n << 4) | GEAR_DRIVE);
+  }
   return GEAR_NEUTRAL;
 }
+
+// True when the display code is a numbered gear (1-6) rather than P/R/N/D.
+inline bool gearIsNumbered(uint8_t code) { return (code >> 4) != 0; }
 
 // ------------------------------------------------------- Cluster state
 struct ClusterState {
@@ -212,11 +227,12 @@ inline void buildBrakeLamps(const ClusterState &s, uint8_t out[8]) {
   out[4] = s.parkingBrake ? BRAKE_B4_PARKING_BRAKE : 0;
 }
 
-// 0x228: [gear display][00][00][00][00][00][00][00]. Hearing it at all turns
-// the AT lamp off.
+// 0x228: [gear display][manual lamp][00][00][00][00][00][00]. Hearing it at
+// all turns the AT lamp off. The manual lamp comes on with a numbered gear.
 inline void buildTransmission(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[0] = s.gear;
+  if (gearIsNumbered(s.gear)) out[1] = TRANS_B1_MANUAL;
 }
 
 // MS 0x433: [00][00][00][high beam bits][00][00][00][00]

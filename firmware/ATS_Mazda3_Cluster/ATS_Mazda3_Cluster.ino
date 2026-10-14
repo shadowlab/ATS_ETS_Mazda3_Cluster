@@ -197,7 +197,8 @@ void applyTelemetry() {
   cluster.parkingBrake = parser.value('P') >= 0.5f;
   cluster.highBeam = parser.value('H') >= 0.5f;
   // No G field: leave the gear display blank rather than guess.
-  cluster.gear = parser.seen('G') ? mazda3::gearFromGame(parser.value('G')) : mazda3::GEAR_NONE;
+  cluster.gear = parser.seen('G') ? mazda3::gearFromGame(parser.value('G'), GEAR_SHOW_NUMBER)
+                                 : mazda3::GEAR_NONE;
   unsigned long now = millis();
   bool left = parser.value('L') >= 0.5f;
   bool right = parser.value('Y') >= 0.5f;

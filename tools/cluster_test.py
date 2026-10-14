@@ -66,7 +66,7 @@ def main():
     ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
     ap.add_argument("--hazard", action="store_true", help="hold both turn signals on (hazard lights)")
-    ap.add_argument("--gear", type=int, help="gear display: 99 P, -1 R, 0 N, 1 or more D")
+    ap.add_argument("--gear", type=int, help="gear display: 99 P, -1 R, 0 N, 1-6 forward gear")
     ap.add_argument("--raw", help="send a '#' command (custom CAN frame) and exit")
     args = ap.parse_args()
 

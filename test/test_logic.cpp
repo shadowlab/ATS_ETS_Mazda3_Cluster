@@ -204,6 +204,22 @@ static void testTransmissionFrame() {
   CHECK(mazda3::gearFromGame(1) == mazda3::GEAR_DRIVE);
   CHECK(mazda3::gearFromGame(12) == mazda3::GEAR_DRIVE);
   CHECK(mazda3::gearFromGame(99) == mazda3::GEAR_PARK);
+
+  // Numbered gears: gear in the high nibble, 4 in the low one, capped at 6.
+  CHECK(mazda3::gearFromGame(1, true) == 0x14);
+  CHECK(mazda3::gearFromGame(3, true) == 0x34);
+  CHECK(mazda3::gearFromGame(6, true) == 0x64);
+  CHECK(mazda3::gearFromGame(12, true) == 0x64);
+  CHECK(mazda3::gearFromGame(0, true) == mazda3::GEAR_NEUTRAL);
+  CHECK(mazda3::gearFromGame(-1, true) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(99, true) == mazda3::GEAR_PARK);
+  // The manual lamp (byte 1 = 0x80) comes on only with a numbered gear.
+  s.gear = 0x24;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 0x24 && b[1] == 0x80);
+  s.gear = mazda3::GEAR_NEUTRAL;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 3 && b[1] == 0);
 }
 
 static void testParserBasic() {

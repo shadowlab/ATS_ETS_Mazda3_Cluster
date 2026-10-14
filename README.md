@@ -445,7 +445,7 @@ The firmware doesn't care which program sends the text, so SimHub works too.
    'L' + if([TurnIndicatorLeft] > 0, '1', '0') +
    'Y' + if([TurnIndicatorRight] > 0, '1', '0') +
    'H' + if([HighBeam] > 0, '1', '0') +
-   'G' + if([Gear] == 'R', '-1', if([Gear] == 'N', '0', if([Gear] == 'P', '99', '1'))) +
+   'G' + if([Gear] == 'R', '-1', if([Gear] == 'N', '0', if([Gear] == 'P', '99', [Gear]))) +
    ';'
    ```
 
@@ -478,7 +478,7 @@ Each field is an upper-case letter followed by a number, for example
 | `L` | Left turn signal | 0/1 (body-bus CAN, flashed by the firmware; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (body-bus CAN, as above) |
 | `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
-| `G` | Gear | negative = R, 0 = N, positive = D, `99` = P. Shows P while the game is paused or closed, and nothing if `G` is never sent |
+| `G` | Gear | negative = R, 0 = N, positive = forward gear, `99` = P. Forward gears show as 1–6 with the manual lamp (above 6 shows 6), or as D with `GEAR_SHOW_NUMBER 0`. Shows P while the game is paused or closed, and nothing if `G` is never sent |
 | `P` | Parking brake | 0/1 |
 
 ### Scaling
@@ -515,6 +515,8 @@ the cluster plug, not CAN.
 | Battery (charge) lamp | HS-CAN | `0x420` byte 4 = `0x02` | Working |
 | Check-engine lamp, steady / flashing | HS-CAN | `0x420` byte 4 = `0x40` / `0x80` | Working |
 | Gear display P/R/N/D | HS-CAN | `0x228` byte 0 | Working |
+| Gear display 1–6 | HS-CAN | `0x228` byte 0 = `0x14`–`0x64` | Confirmed |
+| Manual-mode lamp | HS-CAN | `0x228` byte 1 = `0x80` | Confirmed |
 | Manual "M" indicator | HS-CAN | somewhere in `0x220`–`0x22F` | Block found, ID and bit not narrowed |
 | AT warning lamp | HS-CAN | `0x228` (any) | On by default; sending the frame turns it off |
 | ABS lamp | HS-CAN | `0x212` byte 4 = `0xFF` flashes it | Found, not used |
@@ -545,7 +547,7 @@ All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 
 | `0x420` | 100 ms | 0 | Coolant: °C + 40 |
 | | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; other bytes `0x00` |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
-| `0x228` | 100 ms | 0 | Gear display: `1` P, `2` R, `3` N, `4` D, `0` none. Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 1–7 are `0x00` |
+| `0x228` | 100 ms | 0, 1 | Byte 0 gear display: `1` P, `2` R, `3` N, `4` D, `0x14`–`0x64` gears 1–6, `0` none. Byte 1 `0x80` = manual-mode lamp, sent with a numbered gear (`0x40`–`0x79` light the AT lamp instead). Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 2–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
 | MS `0x460` | 100 ms | all | `0x00`: stands in for the airbag module so the SRS lamp goes out. Body bus only, as above |
 | MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |
@@ -602,10 +604,9 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 - **Odometer:** not driven, so it won't put real distance on your cluster. The
   cluster's own HS frames (`0x046`, `0x190`, `0x430`, `0x433`) never change, so
   they don't carry it.
-- **Gear display:** P, R, N and D work. The manual "M" indicator lit during a
-  scan of HS `0x220`–`0x22F`, but the exact ID and bit aren't narrowed down.
-  Since `0x228` byte 0 is the gear, `#sweep h 228 0` (values past `04`) is the
-  first thing to try, then the other bytes of `0x228`.
+- **Gear display:** P, R, N, D and gears 1–6 (with the manual lamp) work. The
+  display stops at 6, so higher truck gears show 6. Set `GEAR_SHOW_NUMBER 0`
+  to show D instead.
 - **Oil pressure lamp:** a wired switch (16-pin position 9), not CAN. ATS has no
   oil-pressure warning, so it's left unused (`PIN_OIL_LAMP` can drive it).
 - **Cruise lamps:** not driven. A scan lit them somewhere in HS

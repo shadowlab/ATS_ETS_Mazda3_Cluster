@@ -91,6 +91,11 @@
 // 3.0 stretches a truck's range across the dial (2500 truck rpm -> 7500).
 #define RPM_DISPLAY_MULTIPLIER 1.0f
 
+// Gear display. 1 shows forward gears as 1-6 with the manual-mode lamp lit
+// (gears above 6 show 6, since the cluster stops there). 0 shows every
+// forward gear as D, like an automatic.
+#define GEAR_SHOW_NUMBER 1
+
 // --------------------------------------------- Optional GPIO indicator outputs
 // The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the
 // turn signal and high beam lamps driven by the cluster's own microcomputer, so
