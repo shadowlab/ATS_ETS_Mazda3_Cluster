@@ -526,7 +526,7 @@ the cluster plug, not CAN.
 | SRS airbag lamp | MS-CAN | `0x460` (all zeros) | On by default; sending the frame turns it off |
 | Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
-| BRAKE (parking brake) lamp | — | not found | On by default; stays on with CAN unplugged |
+| BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
 | Odometer | — | not found | Not driven |
 
 ## CAN frames sent
@@ -553,9 +553,10 @@ All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 
 The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
 `SPEED_CAN_OFFSET`) and lamp bits are constants at the top of `mazda3_can.h`.
 The `0x420` lamp bits were found on a 2005 cluster. The `0x212` parking brake
-bit and the `0x4B0` wheel-speed encoding come from RX-8 research (the RX-8
-shares much of its CAN matrix with the Mazda 3); the `0x212` bit does nothing
-on a 2005 cluster. Use the `#` command below to check them on
+bit came from RX-8 research and works on a 2005 cluster once the body bus
+(MS-CAN) is connected; on HS-CAN alone the lamp stays on. The `0x4B0`
+wheel-speed encoding also comes from RX-8 research (the RX-8 shares much of
+its CAN matrix with the Mazda 3). Use the `#` command below to check them on
 yours.
 
 ### Experimenting with frames over serial
@@ -590,12 +591,9 @@ frame that works, add it to `mazda3_can.h` permanently.
 
 See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 
-- **BRAKE (parking brake) lamp:** on all the time on the bench, and nothing
-  found turns it off yet. Ruled out so far: all-zero and all-`FF` scans of
-  both buses, HS `0x212` byte 4 (`0x40` does nothing, `FF` flashes ABS), MS
-  `0x190`/`0x205`, and grounding 24-pin position 6. It stays on with CAN
-  unplugged. Next to try: `#sweep h 212 <byte>` on the other bytes of `0x212`.
-  The `P` field still sends the old RX-8 bit, which has no effect.
+- **BRAKE (parking brake) lamp:** needs the second shield on the body bus
+  (MS-CAN). With it connected, the `P` field (HS `0x212` byte 4 = `0x40`)
+  turns the lamp on and off. Without it, the lamp stays on all the time.
 - **Fuel gauge:** complete and tested, but not on CAN. It needs the sender
   stand-in circuit on 24-pin positions 1/2 (see [Fuel gauge](#fuel-gauge)).
   100 % reads one tick under F.

@@ -5,9 +5,10 @@
 //  (see test/test_logic.cpp).
 //
 //  RPM, speed, coolant and the 0x420 lamp bits are bench-tested on a 2005
-//  cluster. The 0x212 parking brake bit and the 0x4B0 wheel-speed encoding
-//  come from RX-8 research (the two cars share much of their CAN matrix); the
-//  0x212 bit does nothing on a 2005 cluster. Use the serial `#` commands to
+//  cluster. The 0x212 parking brake bit (from RX-8 research) works on a
+//  2005 cluster once the body bus (MS-CAN) is connected. The 0x4B0
+//  wheel-speed encoding comes from RX-8 research (the two cars share much of
+//  their CAN matrix). Use the serial `#` commands to
 //  experiment without reflashing.
 // =============================================================================
 #pragma once
