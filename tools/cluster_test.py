@@ -62,7 +62,6 @@ def main():
     ap.add_argument("--rpm", type=float, default=0)
     ap.add_argument("--speed", type=float, default=0, help="mph")
     ap.add_argument("--coolant", type=float, default=90, help="deg C")
-    ap.add_argument("--throttle", type=float, default=0, help="percent")
     ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
     ap.add_argument("--hazard", action="store_true", help="hold both turn signals on (hazard lights)")
@@ -98,7 +97,7 @@ def main():
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
             if args.hazard:
                 lamps["L"] = lamps["Y"] = True
-            port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps, args.gear))
+            port.write(packet(rpm, speed, args.coolant, 0, fuel, lamps, args.gear))
             read_back(port)
             time.sleep(period)
     except KeyboardInterrupt:

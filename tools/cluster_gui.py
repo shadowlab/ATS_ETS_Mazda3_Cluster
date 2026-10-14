@@ -98,10 +98,9 @@ class ClusterGui:
         self.speed = self._slider(box, 1, "Speed (mph)", 0, 140, 0)
         self.coolant = self._slider(box, 2, "Coolant (°C)", 40, 130, 90)
         self.fuel = self._slider(box, 3, "Fuel (%)", 0, 100, 75)
-        self.throttle = self._slider(box, 4, "Throttle (%)", 0, 100, 0)
         self.sweep = tk.BooleanVar()
         ttk.Checkbutton(box, text="Sweep RPM and speed up and down", variable=self.sweep).grid(
-            row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
+            row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _slider(self, parent, row, label, lo, hi, value):
         var = tk.DoubleVar(value=value)
@@ -241,7 +240,7 @@ class ClusterGui:
                 rpm, speed = k * 8000, k * 140
             lamps = {k: v.get() for k, v in self.lamps.items()}
             gear = dict(GEARS)[self.gear.get()]
-            self._write(packet(rpm, speed, self.coolant.get(), self.throttle.get(),
+            self._write(packet(rpm, speed, self.coolant.get(), 0,
                                self.fuel.get(), lamps, gear))
         self.root.after(SEND_PERIOD_MS, self._tick)
 
