@@ -596,9 +596,9 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   unplugged. Next to try: `#sweep h 212 <byte>` on the other bytes of `0x212`.
   The `P` field still sends the old RX-8 bit, which has no effect.
 - **Fuel gauge:** not on CAN. It needs the sender stand-in circuit on 24-pin
-  positions 1/2 (see [Fuel gauge](#fuel-gauge)). It works on a bench cluster.
-  The new log-curve calibration hasn't been checked at the 1/4 and 3/4 marks
-  yet, and 100 % reads one tick under F.
+  positions 1/2 (see [Fuel gauge](#fuel-gauge)). It works on a bench cluster:
+  25 % reads a little above 1/4, 75 % a little under 3/4, and 100 % one tick
+  under F. The needle follows live; if it stops moving, check the D5 wire.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
 - **Odometer:** not driven, so it won't put real distance on your cluster. The
