@@ -35,7 +35,6 @@ SEND_PERIOD_MS = 25  # 40 packets/s, well inside the board's 1 s timeout
 LAMP_NAMES = {
     "E": "Check engine",
     "B": "Battery",
-    "O": "Oil pressure",
     "L": "Left turn",
     "Y": "Right turn",
     "H": "High beam",

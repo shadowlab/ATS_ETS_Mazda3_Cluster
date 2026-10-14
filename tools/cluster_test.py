@@ -33,7 +33,7 @@ except ImportError:
 # Values here are in the units the firmware expects *before* its scaling, i.e.
 # what SimTools would send with the default config. Rpm is multiplied by
 # RPM_DISPLAY_MULTIPLIER on the board (1.0 by default, so it reads true).
-LAMP_KEYS = ["E", "B", "O", "L", "Y", "H", "P"]
+LAMP_KEYS = ["E", "B", "L", "Y", "H", "P"]
 
 
 def packet(rpm, speed, coolant, throttle, fuel, lamps=None, gear=None):
