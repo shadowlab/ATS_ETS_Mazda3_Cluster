@@ -128,12 +128,12 @@
 // switch properly. Tested on a real 2005 cluster.
 #define PIN_FUEL_SENDER -1
 // Sender resistance the needle shows as full, half and empty. Measured on a
-// 2005 cluster: about 160 ohms sits on E, 54 on half, and 20 one tick under
+// 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
 // F (the stand-in can't go much below 21 ohms with a 22 ohm switched
 // resistor, so 100 % reads one tick under F).
 #define FUEL_SENDER_FULL_OHMS  20.0f
 #define FUEL_SENDER_HALF_OHMS  54.0f
-#define FUEL_SENDER_EMPTY_OHMS 160.0f
+#define FUEL_SENDER_EMPTY_OHMS 175.0f
 // The two resistors in the stand-in. Together they reach about 21-470 ohms.
 // Anything at or above FUEL_SENDER_EMPTY_OHMS works for the fixed one: the
 // PWM pulls it down to the empty reading.
