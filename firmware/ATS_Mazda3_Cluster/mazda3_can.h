@@ -115,6 +115,7 @@ struct ClusterState {
   bool leftTurn;   // arrow lit right now (already blinked)
   bool rightTurn;
   uint8_t gear;    // GEAR_* display code
+  bool manualLamp; // 0x228 manual-mode lamp (shows M instead of D)
 };
 
 // Turns a turn-signal input into a flashing lamp. The cluster holds an arrow
@@ -228,11 +229,11 @@ inline void buildBrakeLamps(const ClusterState &s, uint8_t out[8]) {
 }
 
 // 0x228: [gear display][manual lamp][00][00][00][00][00][00]. Hearing it at
-// all turns the AT lamp off. The manual lamp comes on with a numbered gear.
+// all turns the AT lamp off. The manual lamp only shows with a numbered gear.
 inline void buildTransmission(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[0] = s.gear;
-  if (gearIsNumbered(s.gear)) out[1] = TRANS_B1_MANUAL;
+  if (s.manualLamp && gearIsNumbered(s.gear)) out[1] = TRANS_B1_MANUAL;
 }
 
 // MS 0x433: [00][00][00][high beam bits][00][00][00][00]

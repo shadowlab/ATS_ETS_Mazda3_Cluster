@@ -213,8 +213,12 @@ static void testTransmissionFrame() {
   CHECK(mazda3::gearFromGame(0, true) == mazda3::GEAR_NEUTRAL);
   CHECK(mazda3::gearFromGame(-1, true) == mazda3::GEAR_REVERSE);
   CHECK(mazda3::gearFromGame(99, true) == mazda3::GEAR_PARK);
-  // The manual lamp (byte 1 = 0x80) comes on only with a numbered gear.
+  // The manual lamp (byte 1 = 0x80) comes on only when asked for, and only
+  // with a numbered gear.
   s.gear = 0x24;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 0x24 && b[1] == 0);
+  s.manualLamp = true;
   mazda3::buildTransmission(s, b);
   CHECK(b[0] == 0x24 && b[1] == 0x80);
   s.gear = mazda3::GEAR_NEUTRAL;

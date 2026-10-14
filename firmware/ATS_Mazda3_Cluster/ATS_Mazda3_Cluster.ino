@@ -199,6 +199,7 @@ void applyTelemetry() {
   // No G field: leave the gear display blank rather than guess.
   cluster.gear = parser.seen('G') ? mazda3::gearFromGame(parser.value('G'), GEAR_SHOW_NUMBER)
                                  : mazda3::GEAR_NONE;
+  cluster.manualLamp = GEAR_MANUAL_LAMP;
   unsigned long now = millis();
   bool left = parser.value('L') >= 0.5f;
   bool right = parser.value('Y') >= 0.5f;
