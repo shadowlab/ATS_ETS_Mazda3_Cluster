@@ -226,6 +226,15 @@ static void testTransmissionFrame() {
   CHECK(b[0] == 3 && b[1] == 0);
 }
 
+static void testAirbag() {
+  uint8_t b[8];
+  for (int i = 0; i < 8; i++) b[i] = 0x55;
+  mazda3::buildAirbag(b);
+  CHECK(b[1] == 0xFF);
+  CHECK(b[0] == 0 && b[2] == 0 && b[3] == 0 && b[4] == 0 && b[5] == 0 &&
+        b[6] == 0 && b[7] == 0);
+}
+
 static void testParserBasic() {
   TelemetryParser p;
   feedAll(p, "R2350S88.5T90A42E1;");
@@ -282,6 +291,7 @@ int main() {
   testTurnLampsFrame();
   testTurnBlinker();
   testFuelSender();
+  testAirbag();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

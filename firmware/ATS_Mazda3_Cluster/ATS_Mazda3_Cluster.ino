@@ -339,7 +339,7 @@ void sendClusterFrames(unsigned long now) {
     sendBuiltIn(mazda3::ID_TRANSMISSION, buf);
     mazda3::buildBodyLamps(cluster, buf);
     sendBodyFrame(mazda3::ID_BODY_LAMPS, buf);
-    memset(buf, 0, sizeof(buf));  // airbag module present, no faults
+    mazda3::buildAirbag(buf);
     sendBodyFrame(mazda3::ID_AIRBAG, buf);
     for (uint8_t i = 0; i < customCount; i++) {
       const CustomFrame &f = customFrames[i];

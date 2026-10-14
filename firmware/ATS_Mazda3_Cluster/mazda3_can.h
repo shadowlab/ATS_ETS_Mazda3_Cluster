@@ -37,7 +37,10 @@ const uint16_t ID_BODY_LAMPS  = 0x433;  // high beam indicator
 const uint16_t ID_TURN_LAMPS  = 0x265;  // turn signal arrows
 // Bench-tested on a 2005 cluster: the SRS airbag lamp is on until MS 0x460 is
 // heard, and all-zero data turns it off. Stands in for the airbag module.
+// With byte 1 = 0x00 the cluster chimes and flashes the seat belt lamp every
+// minute or so; byte 1 = 0xFF stops it (exact bit not narrowed).
 const uint16_t ID_AIRBAG      = 0x460;
+const uint8_t AIRBAG_B1_NO_BELT_CHIME = 0xFF;
 
 // ------------------------------------------------------- Calibration
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).
@@ -234,6 +237,12 @@ inline void buildTransmission(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[0] = s.gear;
   if (s.manualLamp && gearIsNumbered(s.gear)) out[1] = TRANS_B1_MANUAL;
+}
+
+// MS 0x460: airbag module present, no faults, seat belt chime silenced.
+inline void buildAirbag(uint8_t out[8]) {
+  for (int i = 0; i < 8; i++) out[i] = 0;
+  out[1] = AIRBAG_B1_NO_BELT_CHIME;
 }
 
 // MS 0x433: [00][00][00][high beam bits][00][00][00][00]

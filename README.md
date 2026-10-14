@@ -525,7 +525,8 @@ the cluster plug, not CAN.
 | High beam indicator | MS-CAN | `0x433` byte 3 = `0x40` | Working |
 | Turn arrows, left / right | MS-CAN | `0x265` byte 0 = `0x20` / `0x40` | Working (firmware flashes them); hazards = both |
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
-| SRS airbag lamp | MS-CAN | `0x460` (all zeros) | On by default; sending the frame turns it off |
+| SRS airbag lamp | MS-CAN | `0x460` | On by default; sending the frame turns it off |
+| Seat belt chime (off) | MS-CAN | `0x460` byte 1 = `0xFF` | With byte 1 = `0x00` the seat belt lamp flashes and chimes about once a minute |
 | Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
@@ -549,7 +550,8 @@ All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x228` | 100 ms | 0, 1 | Byte 0 gear display: `1` P, `2` R, `3` N, `4` D, `0x14`–`0x64` gears 1–6, `0` none. Byte 1 `0x80` = manual-mode lamp (M instead of D), sent with a numbered gear only when `GEAR_MANUAL_LAMP` is 1 (`0x40`–`0x79` light the AT lamp instead). Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 2–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
-| MS `0x460` | 100 ms | all | `0x00`: stands in for the airbag module so the SRS lamp goes out. Body bus only, as above |
+| MS `0x460` | 100 ms | 1 | `0xFF`: stops the repeating seat belt chime |
+| | | others | `0x00`: stands in for the airbag module so the SRS lamp goes out. Body bus only, as above |
 | MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |
 
 The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
