@@ -209,7 +209,7 @@ wrong. The return side must be at cluster ground (step 1) for the Mega GND
 link to be safe. If it isn't, stop and ask before wiring this up. The current is small
 (about 32 mA at most), so quarter-watt resistors and a 2N7000 are plenty.
 
-Then set `PIN_FUEL_SENDER 5` in `config.h`. The `F` field (0–100 %) then sets
+`PIN_FUEL_SENDER` is 5 in `config.h` by default (set -1 without the board). The `F` field (0–100 %) then sets
 the PWM duty. The duty is about 9% at empty (pulling 470 Ω down to 160 Ω) and
 fully on at full, and the gauge moves between the two. With the 22 Ω switched
 resistor the pair can't go below about 21 Ω, so 100 % reads one tick under F.
@@ -321,7 +321,7 @@ transceiver:
 Check the crystal on the module: most read `8.000` (set `MS_CAN_CLOCK
 MCP_8MHz`), and some read `16.000` (`MCP_16MHz`).
 
-Either way, set `MS_CAN_ENABLED 1` in `config.h`.
+Either way, `MS_CAN_ENABLED` is 1 in `config.h` by default (set 0 without a second module).
 At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
 the module isn't answering. The gauges keep working either way. Fit the
 module's 120 Ω termination jumper if it has one, since the body bus has no other

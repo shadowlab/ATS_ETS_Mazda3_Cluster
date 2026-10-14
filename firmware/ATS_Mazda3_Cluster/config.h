@@ -49,8 +49,9 @@
 // MCP2515 module wired to the SPI pins (see README). Its CAN-H/CAN-L go to
 // positions 7/8.
 // With it fitted, `#m...` serial commands send custom frames on this bus and
-// `#scan m` searches it (see README).
-#define MS_CAN_ENABLED 0
+// `#scan m` searches it (see README). On by default: without it the SRS and
+// ABS lamps stay lit and BRAKE won't clear. Set 0 if no second module is fitted.
+#define MS_CAN_ENABLED 1
 // Second Seeed shield: D10. Loose module: any free pin, e.g. D53.
 #define MS_CAN_CS_PIN  10
 // Seeed shields have a 16 MHz crystal. Most blue MCP2515 modules have 8 MHz
@@ -132,9 +133,10 @@
 // (a FUEL_FIXED_OHMS resistor across the pins, plus a FUEL_SWITCHED_OHMS
 // resistor switched by a logic-level MOSFET, plus a capacitor) and give the
 // MOSFET's gate pin here. It must be a PWM pin; D5 is free. -1 = off.
+// Defaults to D5, as on the tested board.
 // The stand-in's GND wire must go to a Mega GND pin, or the MOSFET can't
 // switch properly. Tested on a real 2005 cluster.
-#define PIN_FUEL_SENDER -1
+#define PIN_FUEL_SENDER 5
 // Sender resistance the needle shows as full, half and empty. Measured on a
 // 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
 // F (the stand-in can't go much below 21 ohms with a 22 ohm switched
