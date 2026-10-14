@@ -124,14 +124,16 @@
 // (a FUEL_FIXED_OHMS resistor across the pins, plus a FUEL_SWITCHED_OHMS
 // resistor switched by a logic-level MOSFET, plus a capacitor) and give the
 // MOSFET's gate pin here. It must be a PWM pin; D5 is free. -1 = off.
-// Not yet tested on a real cluster.
+// The stand-in's GND wire must go to a Mega GND pin, or the MOSFET can't
+// switch properly. Tested on a real 2005 cluster.
 #define PIN_FUEL_SENDER -1
-// Sender resistance at a full and an empty tank. These come from the Mazda 3
-// service manual's sender table for later engines (about 20 ohms at the top
-// of the float's travel, 400 at the bottom); check them on your cluster with
-// fixed resistors before trusting them (see README).
+// Sender resistance the needle shows as full, half and empty. Measured on a
+// 2005 cluster: about 160 ohms sits on E, 54 on half, and 20 one tick under
+// F (the stand-in can't go much below 21 ohms with a 22 ohm switched
+// resistor, so 100 % reads one tick under F).
 #define FUEL_SENDER_FULL_OHMS  20.0f
-#define FUEL_SENDER_EMPTY_OHMS 400.0f
+#define FUEL_SENDER_HALF_OHMS  54.0f
+#define FUEL_SENDER_EMPTY_OHMS 160.0f
 // The two resistors in the stand-in. Together they reach about 21-470 ohms.
 // Anything at or above FUEL_SENDER_EMPTY_OHMS works for the fixed one: the
 // PWM pulls it down to the empty reading.

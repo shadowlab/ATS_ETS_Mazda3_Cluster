@@ -157,10 +157,10 @@ Twist the CAN-H/CAN-L pair, and keep it away from the 12 V supply leads.
 
 The fuel gauge isn't on CAN. The cluster reads the tank sender's resistance
 on 24-pin positions 1/2 (`2W`/`2U`): low resistance is full, high is empty.
-The 2005 manual on lemon-manuals.la gives no resistance values. The Mazda 3
-manual for later engines lists about 20 Ω with the float at the top and
-about 400 Ω at the bottom, and the BK sender is probably close, but this
-hasn't been checked on a real cluster yet.
+The 2005 manual on lemon-manuals.la gives no resistance values. On a
+bench-tested 2005 cluster, about 160 Ω puts the needle on E, 54 Ω on half,
+and 20 Ω one tick under F. The needle moves about evenly with the log of the
+resistance, not in a straight line, and the firmware follows that curve.
 
 **1. Check the gauge with fixed resistors first** (cluster powered, no game
 needed):
@@ -171,20 +171,18 @@ needed):
   or 11). On a bench-tested 2005 cluster it's about 11 V, with position 2
   positive (sense) and position 1 the return, which is cluster ground. The
   cluster feeds the sender through about 330 Ω: 20 Ω across the pins read
-  0.64 V (about 32 mA) and showed a full tank, and 100 Ω showed about 3/4,
-  which matches the straight line between 20 Ω (full) and 400 Ω (empty)
-  that the firmware uses.
+  0.64 V (about 32 mA) and showed a full tank.
 - Put a resistor across 1/2 and turn the ignition off and on (the gauge moves
   slowly, and some clusters only jump to a new level at ignition on). Try
-  about 22, 47, 100, 220 and 390 Ω, and note where the needle settles each
-  time. If 22 Ω isn't full or 390 Ω isn't empty, change
-  `FUEL_SENDER_FULL_OHMS`/`FUEL_SENDER_EMPTY_OHMS` in `config.h` (and the
-  resistors below) to match.
+  about 22, 47, 100 and 160 Ω, and note where the needle settles each time.
+  If yours differs from the values above, change
+  `FUEL_SENDER_FULL_OHMS`/`FUEL_SENDER_HALF_OHMS`/`FUEL_SENDER_EMPTY_OHMS` in
+  `config.h` to match.
 - The cluster's own self-test also sweeps the gauge: hold the trip button,
   turn the ignition on, keep holding about 5 s until `tESt` shows, release
   within 3 s, then press the button to step to check code 23 (fuel gauge).
 
-**2. Sender stand-in** (not yet tested on a real cluster). A fixed resistor
+**2. Sender stand-in** (tested on a real 2005 cluster). A fixed resistor
 sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
@@ -203,15 +201,24 @@ underneath):
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
 | 100 Ω | Mega `D5` → MOSFET gate |
 | 10 kΩ | Gate → source (keeps it off while the Mega boots) |
-| Wire | MOSFET source / return side → Mega GND |
+| Wire | MOSFET source / return side → a Mega GND pin |
 
-The return side must be at cluster ground (step 1) for the Mega GND link to be
-safe. If it isn't, stop and ask before wiring this up. The current is small
+The GND wire must go to a GND pin on the Mega itself. On bench ground with
+the Mega ungrounded, the MOSFET only half switched on and the readings were
+wrong. The return side must be at cluster ground (step 1) for the Mega GND
+link to be safe. If it isn't, stop and ask before wiring this up. The current is small
 (about 32 mA at most), so quarter-watt resistors and a 2N7000 are plenty.
 
 Then set `PIN_FUEL_SENDER 5` in `config.h`. The `F` field (0–100 %) then sets
-the PWM duty. The duty is about 1% at empty (pulling 470 Ω down to 400 Ω) and
-fully on at full, and the gauge moves between the two.
+the PWM duty. The duty is about 9% at empty (pulling 470 Ω down to 160 Ω) and
+fully on at full, and the gauge moves between the two. With the 22 Ω switched
+resistor the pair can't go below about 21 Ω, so 100 % reads one tick under F.
+
+To check it, with the cluster powered measure the DC voltage across positions
+2/1. On the bench cluster, D5 unconnected read 6.6 V (470 Ω, needle on E).
+With the old straight-line calibration, 0/25/50/75/100 % read
+6.20/5.51/4.41/2.96/0.70 V, as calculated. The needle follows the slider
+without an ignition cycle, but give it several seconds to settle.
 
 ### Turn signals and high beam
 
@@ -516,7 +523,7 @@ the cluster plug, not CAN.
 | Turn arrows, left / right | MS-CAN | `0x265` byte 0 = `0x20` / `0x40` | Working (firmware flashes them); hazards = both |
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
 | SRS airbag lamp | MS-CAN | `0x460` (all zeros) | On by default; sending the frame turns it off |
-| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Gauge confirmed with resistors; PWM stand-in untested |
+| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Working with the PWM stand-in; scale calibrated, 100 % one tick under F |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | — | not found | On by default; stays on with CAN unplugged |
 | Odometer | — | not found | Not driven |
@@ -589,8 +596,9 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   unplugged. Next to try: `#sweep h 212 <byte>` on the other bytes of `0x212`.
   The `P` field still sends the old RX-8 bit, which has no effect.
 - **Fuel gauge:** not on CAN. It needs the sender stand-in circuit on 24-pin
-  positions 1/2 (see [Fuel gauge](#fuel-gauge)). Fixed resistors move the
-  gauge as expected, but the PWM circuit hasn't been tested on a cluster yet.
+  positions 1/2 (see [Fuel gauge](#fuel-gauge)). It works on a bench cluster.
+  The new log-curve calibration hasn't been checked at the 1/4 and 3/4 marks
+  yet, and 100 % reads one tick under F.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
 - **Odometer:** not driven, so it won't put real distance on your cluster. The

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640" font-family="Arial, Helvetica, sans-serif">
 <rect width="1100" height="640" fill="#fff"/>
-<text x="550" y="38" text-anchor="middle" font-size="24" font-weight="bold">Fuel gauge sender stand-in (untested on hardware)</text>
+<text x="550" y="38" text-anchor="middle" font-size="24" font-weight="bold">Fuel gauge sender stand-in (tested on a 2005 cluster)</text>
 
 <!-- Cluster plug -->
 <rect x="920" y="110" width="150" height="330" rx="8" fill="#eef3fb" stroke="#2b4a7a" stroke-width="2"/>
@@ -81,9 +81,9 @@
 <circle cx="80" cy="400" r="7" fill="#222"/>
 <!-- Notes -->
 <text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
-<text x="40" y="514" font-size="14">• Pin numbers are Lab's 24-pin numbering (top row 1 to 12, left to right). Pin 1 measured ~1 Ω to cluster ground, so the Mega GND link is OK.</text>
+<text x="40" y="514" font-size="14">• Pin numbers are Lab's 24-pin numbering (top row 1 to 12, left to right). Pin 1 measured ~1 Ω to cluster ground, so the Mega GND link is OK. Use a GND pin on the Mega itself.</text>
 <text x="40" y="537" font-size="14">• 2N7000 legs, flat face toward you, legs down: Source, Gate, Drain (left to right); check your part's datasheet. Quarter-watt resistors are fine (max ~32 mA).</text>
-<text x="40" y="560" font-size="14">• Then set PIN_FUEL_SENDER 5 in config.h. Duty ≈ 1% = 400 Ω (empty), full duty ≈ 21 Ω (full). The capacitor smooths the switching.</text>
+<text x="40" y="560" font-size="14">• Then set PIN_FUEL_SENDER 5 in config.h. Duty ≈ 9% = 160 Ω (empty), full duty ≈ 21 Ω (one tick under F). The capacitor smooths the switching.</text>
 <text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground.</text>
-<text x="40" y="606" font-size="14">• Bench readings: 20 Ω = full, 100 Ω ≈ 3/4. Cluster feeds the sender from ~11 V through ~330 Ω.</text>
+<text x="40" y="606" font-size="14">• Bench readings: 160 Ω = E, 54 Ω = half, 20 Ω one tick under F. Cluster feeds ~11 V through ~330 Ω.</text>
 </svg>

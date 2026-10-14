@@ -141,11 +141,17 @@ static void testTurnLampsFrame() {
 
 static void testFuelSender() {
   using namespace mazda3;
-  CHECK(near(fuelSenderOhms(100, 20, 400), 20));
-  CHECK(near(fuelSenderOhms(0, 20, 400), 400));
-  CHECK(near(fuelSenderOhms(50, 20, 400), 210));
-  CHECK(near(fuelSenderOhms(150, 20, 400), 20));   // clamped
-  CHECK(near(fuelSenderOhms(-5, 20, 400), 400));
+  CHECK(near(fuelSenderOhms(100, 20, 54, 160), 20));
+  CHECK(near(fuelSenderOhms(50, 20, 54, 160), 54));
+  CHECK(near(fuelSenderOhms(0, 20, 54, 160), 160));
+  CHECK(near(fuelSenderOhms(150, 20, 54, 160), 20));   // clamped
+  CHECK(near(fuelSenderOhms(-5, 20, 54, 160), 160));
+  // Quarter marks sit halfway between the ends in log terms.
+  CHECK(near(fuelSenderOhms(25, 20, 54, 160), 92.95f));
+  CHECK(near(fuelSenderOhms(75, 20, 54, 160), 32.86f));
+  // Falls steadily as the tank fills.
+  CHECK(fuelSenderOhms(30, 20, 54, 160) > fuelSenderOhms(40, 20, 54, 160));
+  CHECK(fuelSenderOhms(60, 20, 54, 160) > fuelSenderOhms(70, 20, 54, 160));
   // 390 ohm fixed + 22 ohm switched: empty = MOSFET off, full = fully on.
   CHECK(fuelSenderDuty(400, 390, 22) == 0);
   CHECK(fuelSenderDuty(20, 390, 22) == 255);
@@ -157,6 +163,8 @@ static void testFuelSender() {
   CHECK(fuelSenderDuty(470, 470, 22) == 0);
   CHECK(fuelSenderDuty(400, 470, 22) == 2);
   CHECK(fuelSenderDuty(20, 470, 22) == 255);
+  // Measured empty (160 ohms): (1/160 - 1/470) * 22 = 0.0907 -> 23/255.
+  CHECK(fuelSenderDuty(160, 470, 22) == 23);
 }
 
 static void testTurnBlinker() {

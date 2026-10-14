@@ -13,6 +13,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <math.h>
 
 namespace mazda3 {
 
@@ -135,14 +136,16 @@ inline uint8_t clampU8(float v) {
 // it with a fixed resistor across the pins plus a second, smaller resistor
 // switched in by a MOSFET on a PWM pin, with a capacitor to smooth the
 // switching. Averaged, the pair looks like 1 / (1/fixed + duty/switched).
-// Not yet tested on a real cluster.
+// Tested on a real 2005 cluster.
 
-// Fuel % to the sender resistance it should show, straight line between the
-// full and empty readings.
-inline float fuelSenderOhms(float pct, float fullOhms, float emptyOhms) {
+// Fuel % to the sender resistance it should show. The 2005 cluster's needle
+// moves about evenly with the log of the resistance, so this steps
+// geometrically from empty to half (0-50 %) and from half to full (50-100 %).
+inline float fuelSenderOhms(float pct, float fullOhms, float halfOhms, float emptyOhms) {
   if (pct <= 0.0f) return emptyOhms;
   if (pct >= 100.0f) return fullOhms;
-  return emptyOhms + (fullOhms - emptyOhms) * pct / 100.0f;
+  if (pct <= 50.0f) return emptyOhms * powf(halfOhms / emptyOhms, pct / 50.0f);
+  return halfOhms * powf(fullOhms / halfOhms, (pct - 50.0f) / 50.0f);
 }
 
 // PWM duty (0-255) that makes the fixed/switched resistor pair look like

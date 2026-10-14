@@ -172,7 +172,8 @@ void initIndicator(int pin) {
 // Sets the fuel sender stand-in's PWM duty to match cluster.fuelPct.
 void updateFuelSender() {
   if (PIN_FUEL_SENDER < 0) return;
-  float ohms = mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS, FUEL_SENDER_EMPTY_OHMS);
+  float ohms = mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
+                                      FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
   analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS));
 }
 
