@@ -11,6 +11,8 @@ Examples:
   python cluster_test.py COM5 --rpm 800 --speed 60  # hold fixed values
   python cluster_test.py COM5 --fuel 25             # fuel gauge to a quarter
   python cluster_test.py COM5 --rpm 800 --lamps     # cycle warning/indicator lamps
+  python cluster_test.py COM5 --hazard              # both turn signals on (hazards)
+  python cluster_test.py COM5 --gear -1             # gear display to R
   python cluster_test.py COM5 --raw "420 82 40 00 00 01 00 00 00"   # inject a frame
   python cluster_test.py COM5 --raw "-"             # clear injected frames
 
@@ -31,13 +33,17 @@ except ImportError:
 # Values here are in the units the firmware expects *before* its scaling, i.e.
 # what SimTools would send with the default config. Rpm is multiplied by
 # RPM_DISPLAY_MULTIPLIER on the board (1.0 by default, so it reads true).
-LAMP_KEYS = ["E", "B", "O", "L", "Y", "H", "P"]
+LAMP_KEYS = ["E", "B", "L", "Y", "H", "P", "C"]
+# Values sent when a lamp is on. C2 = cruise engaged (lights CRUISE and MAIN).
+LAMP_ON_VALUE = {"C": 2}
 
 
-def packet(rpm, speed, coolant, throttle, fuel, lamps=None):
+def packet(rpm, speed, coolant, throttle, fuel, lamps=None, gear=None):
     lamps = lamps or {}
     fields = [f"R{rpm:.0f}", f"S{speed:.1f}", f"T{coolant:.0f}", f"A{throttle:.0f}", f"F{fuel:.0f}"]
-    fields += [f"{k}{1 if lamps.get(k) else 0}" for k in LAMP_KEYS]
+    if gear is not None:
+        fields.append(f"G{gear}")
+    fields += [f"{k}{LAMP_ON_VALUE.get(k, 1) if lamps.get(k) else 0}" for k in LAMP_KEYS]
     return ("".join(fields) + ";\n").encode("ascii")
 
 
@@ -58,9 +64,10 @@ def main():
     ap.add_argument("--rpm", type=float, default=0)
     ap.add_argument("--speed", type=float, default=0, help="mph")
     ap.add_argument("--coolant", type=float, default=90, help="deg C")
-    ap.add_argument("--throttle", type=float, default=0, help="percent")
     ap.add_argument("--fuel", type=float, default=75, help="percent (0 empty .. 100 full)")
     ap.add_argument("--lamps", action="store_true", help="cycle each lamp on for 2 s in turn")
+    ap.add_argument("--hazard", action="store_true", help="hold both turn signals on (hazard lights)")
+    ap.add_argument("--gear", type=int, help="gear display: 99 P, -1 R, 0 N, 1-6 forward gear")
     ap.add_argument("--raw", help="send a '#' command (custom CAN frame) and exit")
     args = ap.parse_args()
 
@@ -90,7 +97,9 @@ def main():
             lamps = {}
             if args.lamps:
                 lamps[LAMP_KEYS[int(t // 2) % len(LAMP_KEYS)]] = True
-            port.write(packet(rpm, speed, args.coolant, args.throttle, fuel, lamps))
+            if args.hazard:
+                lamps["L"] = lamps["Y"] = True
+            port.write(packet(rpm, speed, args.coolant, 0, fuel, lamps, args.gear))
             read_back(port)
             time.sleep(period)
     except KeyboardInterrupt:

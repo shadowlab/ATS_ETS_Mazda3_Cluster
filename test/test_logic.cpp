@@ -73,25 +73,27 @@ static void testEngineInfoFrame() {
   uint8_t b[8];
   mazda3::buildEngineInfo(s, b);
   CHECK(b[0] == 130);
-  CHECK(b[1] == 0);
-  CHECK(b[4] == 1);  // oil pressure OK
-  CHECK(b[6] == 0);
+  CHECK(b[4] == 0x01);  // no lamps
+  for (int i = 1; i < 8; i++) {
+    if (i != 4) CHECK(b[i] == 0);
+  }
 
-  s.checkEngine = true;
-  mazda3::buildEngineInfo(s, b);
-  CHECK(b[1] == 0x40);
-  CHECK(b[4] == 1 && b[6] == 0);
-
-  s.checkEngine = false;
-  s.oilWarning = true;
-  mazda3::buildEngineInfo(s, b);
-  CHECK(b[1] == 0);
-  CHECK(b[4] == 0);
-
-  s.oilWarning = false;
   s.chargeWarning = true;
   mazda3::buildEngineInfo(s, b);
-  CHECK(b[6] == 0x40);
+  CHECK(b[4] == 0x03);
+
+  s.chargeWarning = false;
+  s.checkEngine = true;
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x41);
+
+  s.checkEngineFlash = true;  // flashing wins over steady
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x81);
+
+  s.oilWarning = true;  // the oil lamp is wired, not on CAN
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[4] == 0x81);
 }
 
 static void testBrakeLampsFrame() {
@@ -107,25 +109,172 @@ static void testBrakeLampsFrame() {
   }
 }
 
-static void testFuelLevelFrame() {
+static void testBodyLampsFrame() {
   mazda3::ClusterState s = {};
   uint8_t b[8];
-  s.fuelPct = 0;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x00);
-  s.fuelPct = 100;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x64);
+  mazda3::buildBodyLamps(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.highBeam = true;
+  mazda3::buildBodyLamps(s, b);
+  CHECK(b[3] == 0x40);
+  for (int i = 0; i < 8; i++) {
+    if (i != 3) CHECK(b[i] == 0);
+  }
+}
+
+static void testTurnLampsFrame() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildTurnLamps(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.leftTurn = true;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x20);
+  s.rightTurn = true;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x60);
+  s.leftTurn = false;
+  mazda3::buildTurnLamps(s, b);
+  CHECK(b[0] == 0x40);
   for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
-  s.fuelPct = 62.4f;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 62);
-  s.fuelPct = 140;  // never exceeds full
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x64);
-  s.fuelPct = -5;
-  mazda3::buildFuelLevel(s, b);
-  CHECK(b[0] == 0x00);
+}
+
+static void testFuelSender() {
+  using namespace mazda3;
+  CHECK(near(fuelSenderOhms(100, 20, 54, 160), 20));
+  CHECK(near(fuelSenderOhms(50, 20, 54, 160), 54));
+  CHECK(near(fuelSenderOhms(0, 20, 54, 160), 160));
+  CHECK(near(fuelSenderOhms(150, 20, 54, 160), 20));   // clamped
+  CHECK(near(fuelSenderOhms(-5, 20, 54, 160), 160));
+  // Quarter marks sit halfway between the ends in log terms.
+  CHECK(near(fuelSenderOhms(25, 20, 54, 160), 92.95f));
+  CHECK(near(fuelSenderOhms(75, 20, 54, 160), 32.86f));
+  // Falls steadily as the tank fills.
+  CHECK(fuelSenderOhms(30, 20, 54, 160) > fuelSenderOhms(40, 20, 54, 160));
+  CHECK(fuelSenderOhms(60, 20, 54, 160) > fuelSenderOhms(70, 20, 54, 160));
+  // 390 ohm fixed + 22 ohm switched: empty = MOSFET off, full = fully on.
+  CHECK(fuelSenderDuty(400, 390, 22) == 0);
+  CHECK(fuelSenderDuty(20, 390, 22) == 255);
+  // 210 ohms: (1/210 - 1/390) * 22 = 0.048 -> 12/255.
+  CHECK(fuelSenderDuty(210, 390, 22) == 12);
+  // Duty rises as the target resistance falls.
+  CHECK(fuelSenderDuty(100, 390, 22) > fuelSenderDuty(200, 390, 22));
+  // Default 470 ohm fixed resistor: a little duty still reaches empty.
+  CHECK(fuelSenderDuty(470, 470, 22) == 0);
+  CHECK(fuelSenderDuty(400, 470, 22) == 2);
+  CHECK(fuelSenderDuty(20, 470, 22) == 255);
+  // Measured empty (160 ohms): (1/160 - 1/470) * 22 = 0.0907 -> 23/255.
+  CHECK(fuelSenderDuty(160, 470, 22) == 23);
+}
+
+static void testTurnBlinker() {
+  mazda3::TurnBlinker t = {};
+  CHECK(!t.update(false, 1000, 333));
+  // Steady input: on for the first half period, off for the next, on again.
+  CHECK(t.update(true, 1000, 333));
+  CHECK(t.update(true, 1332, 333));
+  CHECK(!t.update(true, 1333, 333));
+  CHECK(!t.update(true, 1665, 333));
+  CHECK(t.update(true, 1666, 333));
+  // Input off: lamp off straight away.
+  CHECK(!t.update(false, 1700, 333));
+  // A new rising edge restarts the phase (follows a game that blinks itself).
+  CHECK(t.update(true, 1900, 333));
+  // Half period 0: lamp just follows the input.
+  mazda3::TurnBlinker solid = {};
+  CHECK(solid.update(true, 0, 0));
+  CHECK(solid.update(true, 5000, 0));
+}
+
+static void testTransmissionFrame() {
+  mazda3::ClusterState s = {};
+  s.rpm = 3000;
+  uint8_t b[8];
+  for (int i = 0; i < 8; i++) b[i] = 0xAA;
+  mazda3::buildTransmission(s, b);
+  for (int i = 0; i < 8; i++) CHECK(b[i] == 0);
+  s.gear = mazda3::GEAR_DRIVE;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 4);
+  for (int i = 1; i < 8; i++) CHECK(b[i] == 0);
+
+  CHECK(mazda3::gearFromGame(-1) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(-2) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(0) == mazda3::GEAR_NEUTRAL);
+  CHECK(mazda3::gearFromGame(1) == mazda3::GEAR_DRIVE);
+  CHECK(mazda3::gearFromGame(12) == mazda3::GEAR_DRIVE);
+  CHECK(mazda3::gearFromGame(99) == mazda3::GEAR_PARK);
+
+  // Numbered gears: gear in the high nibble, 4 in the low one, capped at 6.
+  CHECK(mazda3::gearFromGame(1, true) == 0x14);
+  CHECK(mazda3::gearFromGame(3, true) == 0x34);
+  CHECK(mazda3::gearFromGame(6, true) == 0x64);
+  CHECK(mazda3::gearFromGame(12, true) == 0x64);
+  CHECK(mazda3::gearFromGame(0, true) == mazda3::GEAR_NEUTRAL);
+  CHECK(mazda3::gearFromGame(-1, true) == mazda3::GEAR_REVERSE);
+  CHECK(mazda3::gearFromGame(99, true) == mazda3::GEAR_PARK);
+  // The manual lamp (byte 1 = 0x80) comes on only when asked for, and only
+  // with a numbered gear.
+  s.gear = 0x24;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 0x24 && b[1] == 0);
+  s.manualLamp = true;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 0x24 && b[1] == 0x80);
+  s.gear = mazda3::GEAR_NEUTRAL;
+  mazda3::buildTransmission(s, b);
+  CHECK(b[0] == 3 && b[1] == 0);
+}
+
+static void testOdoCounter() {
+  mazda3::OdoCounter o;
+  const float step = 0.05f / 207.0f;
+  // Stopped: no counts.
+  o.advance(0, 1000, step);
+  CHECK(o.value == 0);
+  // 60 mph for one minute = 1 mile = 4140 counts, sent every 100 ms.
+  unsigned long total = 0;
+  uint8_t last = 0;
+  for (int i = 0; i < 600; i++) {
+    o.advance(96.56064f, 100, step);
+    total += (uint8_t)(o.value - last);
+    last = o.value;
+  }
+  CHECK(total >= 4138 && total <= 4141);
+  // Slow speeds still count via the carried remainder.
+  mazda3::OdoCounter slow;
+  for (int i = 0; i < 100; i++) slow.advance(1.0f, 100, step);
+  CHECK(slow.value == 7);  // 1 km/h for 10 s = 0.001726 mi = 7.1 counts
+  // 0x420 carries the counter in byte 1.
+  mazda3::ClusterState s = {};
+  s.odoCounter = 0x5A;
+  uint8_t b[8];
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[1] == 0x5A);
+}
+
+static void testCruiseLamps() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0);
+  s.cruiseMain = true;
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0x80);
+  s.cruiseMain = false;
+  s.cruiseSet = true;
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0xC0);
+  CHECK(b[1] == 0 && b[7] == 0);
+}
+
+static void testAirbag() {
+  uint8_t b[8];
+  for (int i = 0; i < 8; i++) b[i] = 0x55;
+  mazda3::buildAirbag(b);
+  CHECK(b[1] == 0xFF);
+  CHECK(b[0] == 0 && b[2] == 0 && b[3] == 0 && b[4] == 0 && b[5] == 0 &&
+        b[6] == 0 && b[7] == 0);
 }
 
 static void testParserBasic() {
@@ -178,8 +327,15 @@ int main() {
   testStoppedAndClamping();
   testWheelSpeedFrame();
   testEngineInfoFrame();
-  testFuelLevelFrame();
   testBrakeLampsFrame();
+  testBodyLampsFrame();
+  testTransmissionFrame();
+  testTurnLampsFrame();
+  testTurnBlinker();
+  testFuelSender();
+  testAirbag();
+  testCruiseLamps();
+  testOdoCounter();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

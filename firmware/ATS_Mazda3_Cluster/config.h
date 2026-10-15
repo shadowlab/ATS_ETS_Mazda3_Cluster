@@ -41,6 +41,24 @@
 // The 2004-2009 (BK) Mazda 3 cluster sits on the 500 kbit/s high-speed bus.
 #define CAN_SPEED CAN_500KBPS
 
+// ------------------------------------------ Optional second CAN module (MS-CAN)
+// The cluster also sits on the 125 kbit/s body bus (MS-CAN, cluster pins 1M/1O,
+// plug positions 7/8). The turn signal and high beam lamps are most likely
+// driven from there. To reach it, add a second MCP2515: either a second Seeed
+// CAN-BUS shield stacked on the first with its CS moved to D10, or a loose
+// MCP2515 module wired to the SPI pins (see README). Its CAN-H/CAN-L go to
+// positions 7/8.
+// With it fitted, `#m...` serial commands send custom frames on this bus and
+// `#scan m` searches it (see README). On by default: without it the SRS and
+// ABS lamps stay lit and BRAKE won't clear. Set 0 if no second module is fitted.
+#define MS_CAN_ENABLED 1
+// Second Seeed shield: D10. Loose module: any free pin, e.g. D53.
+#define MS_CAN_CS_PIN  10
+// Seeed shields have a 16 MHz crystal. Most blue MCP2515 modules have 8 MHz
+// (the can on the board reads "8.000"): use MCP_8MHz for those.
+#define MS_CAN_CLOCK   MCP_16MHz
+#define MS_CAN_SPEED   CAN_125KBPS
+
 // Sweep all needles to full scale and back when the board powers up.
 #define SWEEP_ON_BOOT 1
 #define SWEEP_MAX_RPM 8000
@@ -74,6 +92,22 @@
 // 3.0 stretches a truck's range across the dial (2500 truck rpm -> 7500).
 #define RPM_DISPLAY_MULTIPLIER 1.0f
 
+// Gear display. 1 shows forward gears as D with the gear number 1-6 (gears
+// above 6 show 6, since the cluster stops there). 0 shows every forward gear
+// as plain D, like an automatic.
+#define GEAR_SHOW_NUMBER 1
+// 1 lights the manual-mode lamp with a numbered gear, so it reads M instead
+// of D. 0 keeps D.
+#define GEAR_MANUAL_LAMP 0
+
+// Trip meter / odometer: 0x420 byte 1 counts up with distance and the cluster
+// adds it to the trip and odometer. ODO_MILES_PER_COUNT is the distance the
+// cluster adds per count, about 1/8085 mile (~0.2 m), from Lab's 60 mph runs:
+// at 1/7700, 20 minutes read 19.0 miles (4.8 % low), so it was trimmed;
+// confirmed: 5 minutes at 60 mph now reads 5.0.
+// 0 = off.
+#define ODO_MILES_PER_COUNT (1.0f / 8085.0f)
+
 // --------------------------------------------- Optional GPIO indicator outputs
 // The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the
 // turn signal and high beam lamps driven by the cluster's own microcomputer, so
@@ -95,6 +129,55 @@
 #define PIN_RIGHT_TURN  -1
 #define PIN_HIGH_BEAM   -1
 #define PIN_PARK_BRAKE  -1
+// The oil pressure lamp isn't on CAN: the cluster reads the oil pressure
+// switch on 16-pin position 9 (1B), grounded = lamp on. To drive it from the
+// game, wire an NPN transistor (or relay) from position 9 to ground and give
+// its base pin here (through ~1 kOhm), e.g. 22.
+#define PIN_OIL_LAMP    -1
+
+// ------------------------------------------------------------ Fuel gauge
+// The fuel gauge reads the tank sender's resistance on 24-pin positions 1/2,
+// not CAN. To drive it from the game, fit the sender stand-in from the README
+// (a FUEL_FIXED_OHMS resistor across the pins, plus a FUEL_SWITCHED_OHMS
+// resistor switched by a logic-level MOSFET, plus a capacitor) and give the
+// MOSFET's gate pin here. It must be a PWM pin; D5 is free. -1 = off.
+// Defaults to D5, as on the tested board.
+// The stand-in's GND wire must go to a Mega GND pin, or the MOSFET can't
+// switch properly. Tested on a real 2005 cluster.
+#define PIN_FUEL_SENDER 5
+// Sender resistance the needle shows as full, half and empty. Measured on a
+// 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
+// F (the stand-in can't go much below 21 ohms with a 22 ohm switched
+// resistor, so 100 % reads one tick under F).
+#define FUEL_SENDER_FULL_OHMS  20.0f
+#define FUEL_SENDER_HALF_OHMS  54.0f
+#define FUEL_SENDER_EMPTY_OHMS 175.0f
+// The two resistors in the stand-in. Together they reach about 21-470 ohms.
+// Anything at or above FUEL_SENDER_EMPTY_OHMS works for the fixed one: the
+// PWM pulls it down to the empty reading.
+#define FUEL_FIXED_OHMS    470.0f
+#define FUEL_SWITCHED_OHMS 22.0f
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
+
+// Turn arrows are sent over the body bus (MS-CAN 0x265), and the cluster holds
+// them solid, so the firmware flashes them: on for this long, off for this
+// long (333 ms is about 1.5 flashes a second). If your game output already
+// blinks, the lamp follows its timing anyway. 0 = show the input as-is.
+#define TURN_BLINK_HALF_MS 333
+
+// --------------------------------------------- Body bus test (single shield)
+// Set to 1 to try the body bus (MS-CAN) with the one shield you already have:
+// move the shield's CAN-H/CAN-L wires from cluster positions 5/6 to 7/8. The
+// shield then runs at 125 kbit/s, the boot sweep and all the gauge frames are
+// switched off (the needles won't move), and `#scan h` and `#...` custom frames
+// go out on the body bus. Set back to 0 and move the wires back afterwards.
+#define BODY_BUS_TEST 0
+
+#if BODY_BUS_TEST
+#undef CAN_SPEED
+#define CAN_SPEED CAN_125KBPS
+#undef SWEEP_ON_BOOT
+#define SWEEP_ON_BOOT 0
+#endif
