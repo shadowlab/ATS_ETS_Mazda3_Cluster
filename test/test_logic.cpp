@@ -226,6 +226,33 @@ static void testTransmissionFrame() {
   CHECK(b[0] == 3 && b[1] == 0);
 }
 
+static void testOdoCounter() {
+  mazda3::OdoCounter o;
+  const float step = 0.05f / 207.0f;
+  // Stopped: no counts.
+  o.advance(0, 1000, step);
+  CHECK(o.value == 0);
+  // 60 mph for one minute = 1 mile = 4140 counts, sent every 100 ms.
+  unsigned long total = 0;
+  uint8_t last = 0;
+  for (int i = 0; i < 600; i++) {
+    o.advance(96.56064f, 100, step);
+    total += (uint8_t)(o.value - last);
+    last = o.value;
+  }
+  CHECK(total >= 4138 && total <= 4141);
+  // Slow speeds still count via the carried remainder.
+  mazda3::OdoCounter slow;
+  for (int i = 0; i < 100; i++) slow.advance(1.0f, 100, step);
+  CHECK(slow.value == 7);  // 1 km/h for 10 s = 0.001726 mi = 7.1 counts
+  // 0x420 carries the counter in byte 1.
+  mazda3::ClusterState s = {};
+  s.odoCounter = 0x5A;
+  uint8_t b[8];
+  mazda3::buildEngineInfo(s, b);
+  CHECK(b[1] == 0x5A);
+}
+
 static void testAirbag() {
   uint8_t b[8];
   for (int i = 0; i < 8; i++) b[i] = 0x55;
@@ -292,6 +319,7 @@ int main() {
   testTurnBlinker();
   testFuelSender();
   testAirbag();
+  testOdoCounter();
   testParserBasic();
   testParserSeparatorsAndNegatives();
   testParserLastFieldNeedsTerminator();

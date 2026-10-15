@@ -119,12 +119,30 @@ struct ClusterState {
   bool rightTurn;
   uint8_t gear;    // GEAR_* display code
   bool manualLamp; // 0x228 manual-mode lamp (shows M instead of D)
+  uint8_t odoCounter; // 0x420 byte 1: rolling distance counter (trip/odometer)
 };
 
 // Turns a turn-signal input into a flashing lamp. The cluster holds an arrow
 // solid while its bit is set, so a steady "signal on" from the game is
 // flashed here. A game that already sends the blink still works: each new
 // rising edge restarts the phase, so the lamp follows the game's own timing.
+// Drives the 0x420 byte 1 distance counter. The cluster adds to its trip and
+// odometer as this byte counts up, so it advances with distance travelled:
+// one count per milesPerCount, wrapping at 0xFF. Leftover distance is kept so
+// slow speeds still count.
+struct OdoCounter {
+  float carryMiles;
+  uint8_t value;
+  OdoCounter() : carryMiles(0), value(0) {}
+  void advance(float speedKmh, unsigned long dtMs, float milesPerCount) {
+    if (speedKmh <= 0 || milesPerCount <= 0) return;
+    carryMiles += speedKmh / 1.609344f * (float)dtMs / 3600000.0f;
+    unsigned long counts = (unsigned long)(carryMiles / milesPerCount);
+    carryMiles -= counts * milesPerCount;
+    value = (uint8_t)(value + counts);
+  }
+};
+
 struct TurnBlinker {
   bool wasOn;
   uint32_t onSinceMs;
@@ -210,10 +228,10 @@ inline void buildWheelSpeed(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i += 2) putU16(&out[i], v);
 }
 
-// 0x420: [coolant][00][00][00][lamp bits][00][00][00]
+// 0x420: [coolant][distance counter][00][00][lamp bits][00][00][00]
 inline void buildEngineInfo(const ClusterState &s, uint8_t out[8]) {
   out[0] = encodeCoolant(s.coolantC);
-  out[1] = 0;
+  out[1] = s.odoCounter;
   out[2] = 0;
   out[3] = 0;
   out[4] = ENGINE_B4_BASE;

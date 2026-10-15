@@ -32,6 +32,7 @@ mazda3::ClusterState cluster;
 // One flasher for both arrows, so hazards (left and right together) flash in
 // step even if one side was already on.
 mazda3::TurnBlinker turnBlinker = {};
+mazda3::OdoCounter odo;
 
 unsigned long lastTelemetryMs = 0;
 bool telemetryLive = false;
@@ -330,6 +331,8 @@ void sendClusterFrames(unsigned long now) {
   }
 
   if (now - lastSlowMs >= SLOW_PERIOD_MS) {
+    odo.advance(cluster.speedKmh, now - lastSlowMs, ODO_MILES_PER_COUNT);
+    cluster.odoCounter = odo.value;
     lastSlowMs = now;
     mazda3::buildEngineInfo(cluster, buf);
     sendBuiltIn(mazda3::ID_ENGINE_INFO, buf);

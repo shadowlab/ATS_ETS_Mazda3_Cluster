@@ -530,7 +530,7 @@ the cluster plug, not CAN.
 | Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
-| Odometer | — | not found | Not driven |
+| Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | From a sketch that moved Lab's trip meter. Also adds to the odometer. Scale (`ODO_MILES_PER_COUNT`) not yet calibrated. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
 
 ## CAN frames sent
 
@@ -546,7 +546,8 @@ All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 
 | | | 6 | Throttle × 2 |
 | `0x4B0` | 20 ms | 0–7 | Four wheel speeds: km/h × 100 + 10000 (keeps the ABS lamp quiet) |
 | `0x420` | 100 ms | 0 | Coolant: °C + 40 |
-| | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; other bytes `0x00` |
+| | | 1 | Distance counter: goes up by one every `ODO_MILES_PER_COUNT` miles travelled, wrapping at `0xFF`. Drives the trip meter and odometer |
+| | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; bytes 2, 3, 5–7 `0x00` |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
 | `0x228` | 100 ms | 0, 1 | Byte 0 gear display: `1` P, `2` R, `3` N, `4` D, `0x14`–`0x64` gears 1–6, `0` none. Byte 1 `0x80` = manual-mode lamp (M instead of D), sent with a numbered gear only when `GEAR_MANUAL_LAMP` is 1 (`0x40`–`0x79` light the AT lamp instead). Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 2–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
@@ -603,9 +604,9 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   100 % reads one tick under F.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
-- **Odometer:** not driven, so it won't put real distance on your cluster. The
-  cluster's own HS frames (`0x046`, `0x190`, `0x430`, `0x433`) never change, so
-  they don't carry it.
+- **Trip meter and odometer:** driven by the `0x420` byte 1 counter, so game
+  distance adds to the cluster's real odometer as well as the trip. The scale
+  isn't calibrated yet. Set `ODO_MILES_PER_COUNT` to 0 to turn it off.
 - **Gear display:** P, R, N, D and gears 1–6 work, shown as D plus the gear
   number. The display stops at 6, so higher truck gears show 6. Set
   `GEAR_SHOW_NUMBER 0` for plain D, or `GEAR_MANUAL_LAMP 1` for M instead
