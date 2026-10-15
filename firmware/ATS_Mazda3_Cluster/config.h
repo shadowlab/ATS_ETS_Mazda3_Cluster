@@ -104,7 +104,7 @@
 // adds it to the trip and odometer. ODO_MILES_PER_COUNT is the distance the
 // cluster adds per count. On Lab's cluster at 60 mph, 4140 counts read 0.5
 // mile and 10350 counts read 1.3 mile (display truncates to 0.1), so one count
-// is about 1/7700 mile (~0.21 m). 0 = off.
+// is about 1/7700 mile (~0.21 m); confirmed: 1 min at 60 mph reads 1.0. 0 = off.
 #define ODO_MILES_PER_COUNT (1.0f / 7700.0f)
 
 // --------------------------------------------- Optional GPIO indicator outputs
