@@ -530,7 +530,7 @@ the cluster plug, not CAN.
 | Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
-| Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | From a sketch that moved Lab's trip meter. Also adds to the odometer. Scale (`ODO_MILES_PER_COUNT`) not yet calibrated. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
+| Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/2070 mile per count (`ODO_MILES_PER_COUNT`), checked once at 60 mph. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
 
 ## CAN frames sent
 
@@ -605,8 +605,8 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
 - **Trip meter and odometer:** driven by the `0x420` byte 1 counter, so game
-  distance adds to the cluster's real odometer as well as the trip. The scale
-  isn't calibrated yet. Set `ODO_MILES_PER_COUNT` to 0 to turn it off.
+  distance adds to the cluster's real odometer as well as the trip. Set
+  `ODO_MILES_PER_COUNT` to 0 to turn it off.
 - **Gear display:** P, R, N, D and gears 1–6 work, shown as D plus the gear
   number. The display stops at 6, so higher truck gears show 6. Set
   `GEAR_SHOW_NUMBER 0` for plain D, or `GEAR_MANUAL_LAMP 1` for M instead

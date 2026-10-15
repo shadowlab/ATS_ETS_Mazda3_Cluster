@@ -101,10 +101,10 @@
 #define GEAR_MANUAL_LAMP 0
 
 // Trip meter / odometer: 0x420 byte 1 counts up with distance and the cluster
-// adds it to the trip and odometer. Miles per count, from a sketch that moved
-// Lab's trip meter (0.05 mile per 207 counts). Not yet calibrated: run at a
-// steady speed and compare the trip with the distance. 0 = off.
-#define ODO_MILES_PER_COUNT (0.05f / 207.0f)
+// adds it to the trip and odometer. Miles per count: 0.05/207 (from another
+// sketch) gave 0.5 mile for 1 mile on Lab's cluster, so it's doubled to
+// 0.1/207, about 1/2070 mile (one count every ~0.78 m). 0 = off.
+#define ODO_MILES_PER_COUNT (0.1f / 207.0f)
 
 // --------------------------------------------- Optional GPIO indicator outputs
 // The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the
