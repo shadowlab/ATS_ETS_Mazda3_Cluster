@@ -455,6 +455,10 @@ The firmware doesn't care which program sends the text, so SimHub works too.
    there. Fix it before sending, because stray letters are read as field keys.
 3. Set the update rate to 30–60 Hz.
 
+For the cruise lamps, add a `C` field before the final `';'`: `'C' + if(<cruise on>, '2', '0') +`.
+Use the cruise control property from SimHub's property picker (search for
+"cruise"). `2` lights CRUISE and CRUISE MAIN. Use `1` for MAIN only.
+
 SimHub's `[SpeedMph]` is mph, which matches the default `SPEED_SCALE`. If you
 send `[SpeedKmh]` instead, set `SPEED_SCALE 1.0`.
 
@@ -480,6 +484,7 @@ Each field is an upper-case letter followed by a number, for example
 | `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1` or `BODY_BUS_TEST 1`) |
 | `G` | Gear | negative = R, 0 = N, positive = forward gear, `99` = P. Forward gears show as D with the gear number 1–6 (above 6 shows 6), or as plain D with `GEAR_SHOW_NUMBER 0`. `GEAR_MANUAL_LAMP 1` shows M instead of D. Shows P while the game is paused or closed, and nothing if `G` is never sent |
 | `P` | Parking brake | 0/1 |
+| `C` | Cruise control | 0 off, 1 = switched on (CRUISE MAIN), 2 = engaged (CRUISE and CRUISE MAIN) |
 
 ### Scaling
 
@@ -520,7 +525,7 @@ the cluster plug, not CAN.
 | AT warning lamp | HS-CAN | `0x228` (any) | On by default; sending the frame turns it off |
 | ABS lamp | HS-CAN | `0x212` byte 4 = `0xFF` flashes it | Found, not used |
 | Traction control lamp | HS-CAN | `0x250`–`0x25F` | Found, but latches until power-off, so never sent |
-| Cruise lamps | HS-CAN | somewhere in `0x4E0`–`0x4EF` | Block found, bit not narrowed |
+| Cruise lamps, CRUISE MAIN / CRUISE | HS-CAN | `0x4EA` byte 0 = `0x80` / `0x40` | Bits confirmed; driven by the `C` field |
 | High beam indicator | MS-CAN | `0x433` byte 3 = `0x40` | Working |
 | Turn arrows, left / right | MS-CAN | `0x265` byte 0 = `0x20` / `0x40` | Working (firmware flashes them); hazards = both |
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
@@ -548,6 +553,7 @@ All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 
 | | | 1 | Distance counter: goes up by one every `ODO_MILES_PER_COUNT` miles travelled, wrapping at `0xFF`. Drives the trip meter and odometer |
 | | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; bytes 2, 3, 5–7 `0x00` |
 | `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
+| `0x4EA` | 100 ms | 0 | `0x80` = CRUISE MAIN, `0x40` = CRUISE (sent with MAIN). Other bytes `0x00` |
 | `0x228` | 100 ms | 0, 1 | Byte 0 gear display: `1` P, `2` R, `3` N, `4` D, `0x14`–`0x64` gears 1–6, `0` none. Byte 1 `0x80` = manual-mode lamp (M instead of D), sent with a numbered gear only when `GEAR_MANUAL_LAMP` is 1 (`0x40`–`0x79` light the AT lamp instead). Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 2–7 are `0x00` |
 | MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` or `BODY_BUS_TEST` is on; other bytes `0x00` |
 | MS `0x460` | 100 ms | 1 | `0xFF`: stops the repeating seat belt chime |
@@ -612,8 +618,6 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   of D.
 - **Oil pressure lamp:** a wired switch (16-pin position 9), not CAN. ATS has no
   oil-pressure warning, so it's left unused (`PIN_OIL_LAMP` can drive it).
-- **Cruise lamps:** not driven. A scan lit them somewhere in HS
-  `0x4E0`–`0x4EF`; the exact ID and bit aren't narrowed down.
 - **ABS and traction control lamps:** found (HS `0x212` byte 4 = `FF` flashes
   ABS; `0x250`–`0x25F` lights TCS) but not driven. Never send `0x250`–`0x25F`:
   the TCS lamp latches on until the cluster is powered off.

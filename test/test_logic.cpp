@@ -253,6 +253,21 @@ static void testOdoCounter() {
   CHECK(b[1] == 0x5A);
 }
 
+static void testCruiseLamps() {
+  mazda3::ClusterState s = {};
+  uint8_t b[8];
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0);
+  s.cruiseMain = true;
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0x80);
+  s.cruiseMain = false;
+  s.cruiseSet = true;
+  mazda3::buildCruiseLamps(s, b);
+  CHECK(b[0] == 0xC0);
+  CHECK(b[1] == 0 && b[7] == 0);
+}
+
 static void testAirbag() {
   uint8_t b[8];
   for (int i = 0; i < 8; i++) b[i] = 0x55;
@@ -319,6 +334,7 @@ int main() {
   testTurnBlinker();
   testFuelSender();
   testAirbag();
+  testCruiseLamps();
   testOdoCounter();
   testParserBasic();
   testParserSeparatorsAndNegatives();

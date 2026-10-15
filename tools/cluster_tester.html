@@ -134,8 +134,9 @@ const PACKET_ORDER = ["R", "S", "T", "F"];
 const LAMPS = [
   ["E", "Check engine"], ["X", "Flash check engine"], ["B", "Battery"], ["P", "Parking brake"],
   ["L", "Left turn"], ["Y", "Right turn"], ["H", "High beam"],
+  ["C", "Cruise main"], ["K", "Cruise set"],
 ];
-const LAMP_ORDER = ["E", "B", "L", "Y", "H", "P"];
+const LAMP_ORDER = ["E", "B", "L", "Y", "H", "P", "C"];
 const GEARS = [["None", null], ["P", 99], ["R", -1], ["N", 0], ["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5], ["6", 6]];  // 99 = park; 1-6 show D with GEAR_SHOW_NUMBER 0
 const QUICK = [
   ["Bus health", "stat"], ["Watch on/off", "watch"], ["List frames", "?"], ["Clear all", "-"],
@@ -154,6 +155,7 @@ function buildPacket(values, lamps, gear) {
   if (gear !== null && gear !== undefined) s += "G" + gear;
   for (const k of LAMP_ORDER) {
     if (k === "E") s += "E" + (lamps.X ? "2" : lamps.E ? "1" : "0");  // E2 = flashing
+    else if (k === "C") s += "C" + (lamps.K ? "2" : lamps.C ? "1" : "0");  // C2 = engaged
     else s += k + (lamps[k] ? "1" : "0");
   }
   return s + ";\n";

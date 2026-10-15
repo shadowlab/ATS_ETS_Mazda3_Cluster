@@ -26,6 +26,8 @@ const uint16_t ID_WHEEL_SPEED = 0x4B0;  // ABS: individual wheel speeds
 // on HS-CAN, so sending it too would clash on the bus. Its fuel gauge reads
 // the analog tank sender (24-pin 2U/2W) instead.
 const uint16_t ID_BRAKE_LAMPS = 0x212;  // brake warning lamp (parking brake)
+// Bench-tested on a 2005 cluster: byte 0 bit 0x80 = CRUISE MAIN, 0x40 = CRUISE.
+const uint16_t ID_CRUISE_LAMPS = 0x4EA;
 // Bench-tested on a 2005 cluster: the AT warning lamp is on until 0x228 is
 // heard, and all-zero data turns it off. Byte 0 is the gear display and
 // byte 1 bit 0x80 the manual-mode lamp (codes below). Traction control lives
@@ -61,6 +63,8 @@ const uint8_t ENGINE_B4_CHARGE       = 0x02;  // battery/charge lamp
 const uint8_t ENGINE_B4_CHECK_ENGINE = 0x40;  // check-engine lamp, steady
 const uint8_t ENGINE_B4_CHECK_FLASH  = 0x80;  // check-engine lamp, flashing
 const uint8_t BRAKE_B4_PARKING_BRAKE = 0x40;  // 0x212 byte 4
+const uint8_t CRUISE_B0_MAIN = 0x80;  // 0x4EA byte 0: cruise switched on
+const uint8_t CRUISE_B0_SET  = 0x40;  // 0x4EA byte 0: cruise engaged
 // Bench-tested on a 2005 cluster: MS-CAN 0x433 byte 3 = 0x40 lights the
 // high beam indicator.
 const uint8_t BODY_B3_HIGH_BEAM      = 0x40;  // MS 0x433 byte 3
@@ -120,6 +124,8 @@ struct ClusterState {
   uint8_t gear;    // GEAR_* display code
   bool manualLamp; // 0x228 manual-mode lamp (shows M instead of D)
   uint8_t odoCounter; // 0x420 byte 1: rolling distance counter (trip/odometer)
+  bool cruiseMain; // CRUISE MAIN lamp (cruise switched on)
+  bool cruiseSet;  // CRUISE lamp (cruise engaged; also lights MAIN)
 };
 
 // Turns a turn-signal input into a flashing lamp. The cluster holds an arrow
@@ -247,6 +253,14 @@ inline void buildEngineInfo(const ClusterState &s, uint8_t out[8]) {
 inline void buildBrakeLamps(const ClusterState &s, uint8_t out[8]) {
   for (int i = 0; i < 8; i++) out[i] = 0;
   out[4] = s.parkingBrake ? BRAKE_B4_PARKING_BRAKE : 0;
+}
+
+// 0x4EA: [cruise lamp bits][00][00][00][00][00][00][00]. Engaged cruise lights
+// MAIN too, as on the real car.
+inline void buildCruiseLamps(const ClusterState &s, uint8_t out[8]) {
+  for (int i = 0; i < 8; i++) out[i] = 0;
+  if (s.cruiseMain || s.cruiseSet) out[0] |= CRUISE_B0_MAIN;
+  if (s.cruiseSet) out[0] |= CRUISE_B0_SET;
 }
 
 // 0x228: [gear display][manual lamp][00][00][00][00][00][00]. Hearing it at

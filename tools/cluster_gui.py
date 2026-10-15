@@ -39,6 +39,7 @@ LAMP_NAMES = {
     "Y": "Right turn",
     "H": "High beam",
     "P": "Parking brake",
+    "C": "Cruise",
 }
 
 GEARS = [("None", None), ("P", 99), ("R", -1), ("N", 0)] + [(str(n), n) for n in range(1, 7)]  # 99 = park

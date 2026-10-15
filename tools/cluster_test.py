@@ -33,7 +33,9 @@ except ImportError:
 # Values here are in the units the firmware expects *before* its scaling, i.e.
 # what SimTools would send with the default config. Rpm is multiplied by
 # RPM_DISPLAY_MULTIPLIER on the board (1.0 by default, so it reads true).
-LAMP_KEYS = ["E", "B", "L", "Y", "H", "P"]
+LAMP_KEYS = ["E", "B", "L", "Y", "H", "P", "C"]
+# Values sent when a lamp is on. C2 = cruise engaged (lights CRUISE and MAIN).
+LAMP_ON_VALUE = {"C": 2}
 
 
 def packet(rpm, speed, coolant, throttle, fuel, lamps=None, gear=None):
@@ -41,7 +43,7 @@ def packet(rpm, speed, coolant, throttle, fuel, lamps=None, gear=None):
     fields = [f"R{rpm:.0f}", f"S{speed:.1f}", f"T{coolant:.0f}", f"A{throttle:.0f}", f"F{fuel:.0f}"]
     if gear is not None:
         fields.append(f"G{gear}")
-    fields += [f"{k}{1 if lamps.get(k) else 0}" for k in LAMP_KEYS]
+    fields += [f"{k}{LAMP_ON_VALUE.get(k, 1) if lamps.get(k) else 0}" for k in LAMP_KEYS]
     return ("".join(fields) + ";\n").encode("ascii")
 
 
