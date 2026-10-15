@@ -516,8 +516,7 @@ the cluster plug, not CAN.
 | Check-engine lamp, steady / flashing | HS-CAN | `0x420` byte 4 = `0x40` / `0x80` | Working |
 | Gear display P/R/N/D | HS-CAN | `0x228` byte 0 | Working |
 | Gear display 1–6 | HS-CAN | `0x228` byte 0 = `0x14`–`0x64` | Confirmed |
-| Manual-mode lamp | HS-CAN | `0x228` byte 1 = `0x80` | Confirmed |
-| Manual "M" indicator | HS-CAN | somewhere in `0x220`–`0x22F` | Block found, ID and bit not narrowed |
+| Manual-mode lamp ("M" indicator) | HS-CAN | `0x228` byte 1 = `0x80` | Confirmed. Shows M in place of D with gears 1–6; off by default (`GEAR_MANUAL_LAMP 1` turns it on). `0x40`–`0x79` light the AT lamp instead |
 | AT warning lamp | HS-CAN | `0x228` (any) | On by default; sending the frame turns it off |
 | ABS lamp | HS-CAN | `0x212` byte 4 = `0xFF` flashes it | Found, not used |
 | Traction control lamp | HS-CAN | `0x250`–`0x25F` | Found, but latches until power-off, so never sent |
