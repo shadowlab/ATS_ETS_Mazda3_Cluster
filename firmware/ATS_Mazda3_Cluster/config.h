@@ -102,10 +102,10 @@
 
 // Trip meter / odometer: 0x420 byte 1 counts up with distance and the cluster
 // adds it to the trip and odometer. ODO_MILES_PER_COUNT is the distance the
-// cluster adds per count. On Lab's cluster at 60 mph, 4140 counts read 0.5
-// mile and 10350 counts read 1.3 mile (display truncates to 0.1), so one count
-// is about 1/7700 mile (~0.21 m); confirmed: 1 min at 60 mph reads 1.0. 0 = off.
-#define ODO_MILES_PER_COUNT (1.0f / 7700.0f)
+// cluster adds per count, about 1/7920 mile (~0.2 m), from Lab's 60 mph runs:
+// at 1/7700, 20 minutes read 19 miles (about 2.8 % low), so it was trimmed.
+// 0 = off.
+#define ODO_MILES_PER_COUNT (1.0f / 7920.0f)
 
 // --------------------------------------------- Optional GPIO indicator outputs
 // The factory wiring diagram for the 2005 Mazda 3 cluster (0922-1b/1c) shows the

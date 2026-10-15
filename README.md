@@ -529,7 +529,7 @@ the cluster plug, not CAN.
 | Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
-| Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/7700 mile per count (`ODO_MILES_PER_COUNT`). Confirmed on a 2005 cluster: 1 minute at 60 mph reads 1.0 mile. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
+| Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/7920 mile per count (`ODO_MILES_PER_COUNT`), trimmed after a 20-minute run at 60 mph read 19 miles at 1/7700. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
 
 ## CAN frames sent
 
