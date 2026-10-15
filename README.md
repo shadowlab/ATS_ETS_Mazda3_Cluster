@@ -281,9 +281,9 @@ Mega figures are from Arduino's drawing, shield figures from Seeed's CAN-BUS Shi
 drawing, with the screw terminals swapped for Phoenix Contact 1803277
 right-angle headers (wires on 5447861 plugs). The header stands 7.25 mm above
 the PCB, about 7.7 mm with the plug in. The DB9 ports stay: Seeed's drawing
-puts them 14.7 mm above the PCB, and Lab found the lower shield's DB9 fits
-under the upper shield on the real stack, so the gap between shields is at
-least that (drawn at 15 mm). The plug hangs about 3.4 mm below the PCB past
+puts them 14.7 mm above the PCB. On the real stack Lab measured 2.8 mm from
+the lower shield's DB9 to the upper shield and 7.8 mm between the two Phoenix
+plugs, so the gap between shields is about 17.5 mm (overall about 48 mm). The plug hangs about 3.4 mm below the PCB past
 the header, so check it clears whatever sits under it.
 
 **A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
