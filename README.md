@@ -1,5 +1,5 @@
 # ATS_Mazda3_Cluster
-Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster and obtain readings from ATS on the real gauges!
+Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster and obtain readings from American Truck Simulator or Euro Truck Simulator on real gauges!
 
 ```
 American Truck      SimTools          Arduino Mega 2560          2005 Mazda 3
