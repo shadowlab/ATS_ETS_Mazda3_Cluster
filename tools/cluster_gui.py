@@ -42,7 +42,7 @@ LAMP_NAMES = {
     "C": "Cruise",
 }
 
-GEARS = [("None", None), ("P", 99), ("R", -1), ("N", 0)] + [(str(n), n) for n in range(1, 7)]  # 99 = park
+GEARS = [("P", 99), ("R", -1), ("N", 0)] + [(str(n), n) for n in range(1, 7)]  # 99 = park
 
 # One-click commands. Each is sent as "#<text>\n".
 QUICK_COMMANDS = [
@@ -130,7 +130,7 @@ class ClusterGui:
 
         gear = ttk.LabelFrame(row, text="Gear", padding=6)
         gear.pack(side="left", fill="y", padx=6)
-        self.gear = tk.StringVar(value="None")
+        self.gear = tk.StringVar(value="P")
         for name, _ in GEARS:
             ttk.Radiobutton(gear, text=name, value=name, variable=self.gear).pack(anchor="w")
 

@@ -137,14 +137,14 @@ const LAMPS = [
   ["C", "Cruise main"], ["K", "Cruise set"],
 ];
 const LAMP_ORDER = ["E", "B", "L", "Y", "H", "P", "C"];
-const GEARS = [["None", null], ["P", 99], ["R", -1], ["N", 0], ["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5], ["6", 6]];  // 99 = park; 1-6 show D with GEAR_SHOW_NUMBER 0
+const GEARS = [["P", 99], ["R", -1], ["N", 0], ["1", 1], ["2", 2], ["3", 3], ["4", 4], ["5", 5], ["6", 6]];  // 99 = park; 1-6 show D with GEAR_SHOW_NUMBER 0
 const QUICK = [
   ["Bus health", "stat"], ["Watch on/off", "watch"], ["List frames", "?"], ["Clear all", "-"],
   ["Stop scan", "scan"], ["Resume scan", "scan resume"], ["Stop sweep", "sweep"],
 ];
 const SEND_PERIOD_MS = 25;
 
-const state = { values: {}, lamps: {}, gear: null, sweep: false, paused: false };
+const state = { values: {}, lamps: {}, gear: 99, sweep: false, paused: false };
 
 function buildPacket(values, lamps, gear) {
   let s = "";
