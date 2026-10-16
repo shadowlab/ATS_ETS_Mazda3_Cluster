@@ -192,12 +192,15 @@ inline float fuelSenderOhms(float pct, float fullOhms, float halfOhms, float emp
   return halfOhms * powf(fullOhms / halfOhms, (pct - 50.0f) / 50.0f);
 }
 
-// PWM duty (0-255) that makes the fixed/switched resistor pair look like
+// PWM duty (0-maxDuty) that makes the fixed/switched resistor pair look like
 // targetOhms. Clamped to what the pair can reach.
-inline uint8_t fuelSenderDuty(float targetOhms, float fixedOhms, float switchedOhms) {
-  if (targetOhms <= 0.0f) return 255;
-  float duty = (1.0f / targetOhms - 1.0f / fixedOhms) * switchedOhms;
-  return clampU8(duty * 255.0f);
+inline uint16_t fuelSenderDuty(float targetOhms, float fixedOhms, float switchedOhms,
+                               uint16_t maxDuty = 255) {
+  if (targetOhms <= 0.0f) return maxDuty;
+  float duty = (1.0f / targetOhms - 1.0f / fixedOhms) * switchedOhms * maxDuty + 0.5f;
+  if (duty <= 0.0f) return 0;
+  if (duty >= maxDuty) return maxDuty;
+  return (uint16_t)duty;
 }
 
 inline uint16_t encodeSpeed(float kmh) {

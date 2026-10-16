@@ -78,7 +78,11 @@ The board's pins are **3.3 V**. That only matters for the fuel stand-in: a
 2N7000 is only partly on with 3.3 V on its gate, so the needle may read high
 until you recalibrate. A logic-level MOSFET such as an IRLB8721 switches fully
 at 3.3 V. [docs/fuel_gauge_wiring_esp32.svg](docs/fuel_gauge_wiring_esp32.svg)
-shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721, and
+shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721. It swaps the
+22 Ω switched resistor for 10 Ω, so the stand-in reaches about 10 Ω and full
+can sit on F instead of one tick under (the PWM goes 10-bit to keep fine steps
+near empty). `FUEL_SENDER_FULL_OHMS` starts at a guessed 15 Ω on this board:
+send `#ohms` values to find the one that sits on F and put it in `config.h`.
 [docs/fuel_gauge_protoboard_esp32.svg](docs/fuel_gauge_protoboard_esp32.svg)
 lays it out on the same 6 × 28 protoboard.
 
@@ -635,6 +639,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#sweep h 212 4` / `#sweep m 433 3` | Send that ID with every byte `0x00` except the one given (0–7), which steps through `00`–`FF`, one value every 0.4 s, printing each value. For lamps that need one particular value. Add a start value to begin part-way (`#sweep h 212 4 80`) |
 | `#sweep` | Stop a sweep and print the value it stopped at |
 | `#watch` | Toggle printing the cluster's own frames whenever their data changes (`changed HS 0x190 …`). Useful alongside `#sweep` or `#scan`, since the cluster reports some of its own state |
+| `#ohms 15` / `#ohms 0` | Hold the fuel sender stand-in at that resistance, ignoring the game, to find which value sits on F, ½ or E (then set `FUEL_SENDER_FULL/HALF/EMPTY_OHMS`). `#ohms 0` follows the game again |
 | `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).

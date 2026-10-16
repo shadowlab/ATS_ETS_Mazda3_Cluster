@@ -35,7 +35,7 @@
 <!-- Branch C: 22 ohm + MOSFET -->
 <line x1="460" y1="190" x2="460" y2="210" stroke="#222" stroke-width="2"/>
 <rect x="448" y="210" width="24" height="60" fill="#fff" stroke="#222" stroke-width="2"/>
-<text x="480" y="236" font-size="15" font-weight="bold">22 Ω</text>
+<text x="480" y="236" font-size="15" font-weight="bold">10 Ω</text>
 <text x="480" y="254" font-size="12">pulls toward FULL</text>
 <line x1="460" y1="270" x2="460" y2="292" stroke="#222" stroke-width="2"/>
 <!-- MOSFET symbol -->
@@ -47,7 +47,7 @@
 <line x1="446" y1="298" x2="446" y2="338" stroke="#222" stroke-width="3"/>
 <line x1="438" y1="298" x2="438" y2="338" stroke="#222" stroke-width="2"/>
 <text x="490" y="300" font-size="15" font-weight="bold">IRLB8721</text>
-<text x="490" y="318" font-size="12">D = top (to 22 Ω)</text>
+<text x="490" y="318" font-size="12">D = top (to 10 Ω)</text>
 <text x="490" y="334" font-size="12">S = bottom (to ground)</text>
 <text x="490" y="350" font-size="12">G = left</text>
 <circle cx="460" cy="190" r="4"/><circle cx="460" cy="400" r="4"/>
@@ -85,8 +85,8 @@
 <!-- Notes -->
 <text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
 <text x="40" y="514" font-size="14">• IRLB8721 legs, printed face toward you, legs down: Gate, Drain, Source (left to right). The metal tab is also Drain: keep it clear of ground.</text>
-<text x="40" y="537" font-size="14">• Logic-level MOSFET (threshold 1.35-2.35 V), so the ESP32's 3.3 V turns it fully on. Resistors and capacitor are the same as the Mega board.</text>
+<text x="40" y="537" font-size="14">• Logic-level MOSFET (threshold 1.35-2.35 V), so the ESP32's 3.3 V turns it fully on. The 22 Ω becomes 10 Ω so full can reach F.</text>
 <text x="40" y="560" font-size="14">• Ground to a GND pin on the ESP32-CAN-X2 itself (SV2 pins 16-18). PIN_FUEL_SENDER is set to 14 automatically on this board.</text>
 <text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground. Quarter-watt resistors are fine (max ~32 mA).</text>
-<text x="40" y="606" font-size="14">• Bench readings (Mega board): 160 Ω = E, 54 Ω = half, 20 Ω one tick under F. Cluster feeds ~11 V through ~330 Ω.</text>
+<text x="40" y="606" font-size="14">• Bench readings (Mega board): 160 Ω = E, 54 Ω = half, 20 Ω one tick under F. 10 Ω lets it reach ~10 Ω; find F with #ohms.</text>
 </svg>

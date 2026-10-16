@@ -176,12 +176,19 @@ void initIndicator(int pin) {
   setIndicator(pin, false);
 }
 
+// `#ohms <n>`: hold the stand-in at n ohms, ignoring the game, to find the
+// FUEL_SENDER_*_OHMS readings. 0 = follow the game again.
+float fuelOhmsOverride = 0;
+
 // Sets the fuel sender stand-in's PWM duty to match cluster.fuelPct.
 void updateFuelSender() {
   if (PIN_FUEL_SENDER < 0) return;
-  float ohms = mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
-                                      FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
-  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS));
+  float ohms = fuelOhmsOverride > 0
+                   ? fuelOhmsOverride
+                   : mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
+                                            FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
+  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS,
+                                                      (1u << FUEL_PWM_BITS) - 1));
 }
 
 float scaled(char key, float scale, float offset) {
@@ -554,6 +561,21 @@ void handleCommand(const char *cmd) {
     printSweepStep();
     return;
   }
+  if (strncmp(cmd, "ohms", 4) == 0) {
+    fuelOhmsOverride = atof(cmd + 4);
+    if (fuelOhmsOverride > 0) {
+      DEBUG_PORT.print(F("fuel stand-in held at "));
+      DEBUG_PORT.print(fuelOhmsOverride, 1);
+      DEBUG_PORT.print(F(" ohms (lowest it reaches: "));
+      DEBUG_PORT.print(1.0f / (1.0f / FUEL_FIXED_OHMS + 1.0f / FUEL_SWITCHED_OHMS), 1);
+      DEBUG_PORT.println(F(") - #ohms 0 to follow the game"));
+    } else {
+      fuelOhmsOverride = 0;
+      DEBUG_PORT.println(F("fuel stand-in follows the game"));
+    }
+    updateFuelSender();
+    return;
+  }
   if (strncmp(cmd, "watch", 5) == 0) {
     watchChanges = !watchChanges;
     DEBUG_PORT.println(watchChanges ? F("watch on: cluster frames print when they change")
@@ -726,7 +748,12 @@ void setup() {
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;
   cluster.fuelPct = 50;
-  if (PIN_FUEL_SENDER >= 0) pinMode(PIN_FUEL_SENDER, OUTPUT);
+  if (PIN_FUEL_SENDER >= 0) {
+    pinMode(PIN_FUEL_SENDER, OUTPUT);
+#if BOARD_CAN_X2
+    analogWriteResolution(PIN_FUEL_SENDER, FUEL_PWM_BITS);
+#endif
+  }
   updateFuelSender();
 
   while (CAN.begin(CAN_SPEED, CAN_CLOCK) != CAN_OK) {
