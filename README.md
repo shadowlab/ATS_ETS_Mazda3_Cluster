@@ -78,7 +78,9 @@ The board's pins are **3.3 V**. That only matters for the fuel stand-in: a
 2N7000 is only partly on with 3.3 V on its gate, so the needle may read high
 until you recalibrate. A logic-level MOSFET such as an IRLB8721 switches fully
 at 3.3 V. [docs/fuel_gauge_wiring_esp32.svg](docs/fuel_gauge_wiring_esp32.svg)
-shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721.
+shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721, and
+[docs/fuel_gauge_protoboard_esp32.svg](docs/fuel_gauge_protoboard_esp32.svg)
+lays it out on the same 6 × 28 protoboard.
 
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port
 like the Mega does, so SimTools, SimHub and `tools/cluster_tester.html` work
