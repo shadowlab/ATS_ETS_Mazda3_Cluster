@@ -5,7 +5,8 @@
 //  Simulator telemetry. SimTools streams game data to this board over USB
 //  serial; the board turns it into the CAN frames the cluster expects.
 //
-//  Hardware: Arduino Mega 2560 + Seeed Studio CAN-BUS Shield (MCP2515).
+//  Hardware: Arduino Mega 2560 + Seeed Studio CAN-BUS Shield (MCP2515), or an
+//            Autosport Labs ESP32-CAN-X2 (see BOARD_CAN_X2 in config.h).
 //  Library:  "CAN-BUS Shield" by Seeed Studio (Seeed_Arduino_CAN) v2.x.
 //
 //  Serial fields (see README for the full table):
@@ -22,7 +23,12 @@
 #include "mazda3_can.h"
 #include "telemetry_parser.h"
 
+#if BOARD_CAN_X2
+#include "twai_can.h"
+TwaiCan CAN(CAN_TX_PIN, CAN_RX_PIN);
+#else
 mcp2515_can CAN(CAN_CS_PIN);
+#endif
 #if MS_CAN_ENABLED
 mcp2515_can MSCAN(MS_CAN_CS_PIN);
 #endif
@@ -170,12 +176,19 @@ void initIndicator(int pin) {
   setIndicator(pin, false);
 }
 
+// `#ohms <n>`: hold the stand-in at n ohms, ignoring the game, to find the
+// FUEL_SENDER_*_OHMS readings. 0 = follow the game again.
+float fuelOhmsOverride = 0;
+
 // Sets the fuel sender stand-in's PWM duty to match cluster.fuelPct.
 void updateFuelSender() {
   if (PIN_FUEL_SENDER < 0) return;
-  float ohms = mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
-                                      FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
-  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS));
+  float ohms = fuelOhmsOverride > 0
+                   ? fuelOhmsOverride
+                   : mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
+                                            FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
+  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS,
+                                                      (1u << FUEL_PWM_BITS) - 1));
 }
 
 float scaled(char key, float scale, float offset) {
@@ -410,7 +423,8 @@ void printFrame(const CustomFrame &f) {
 // Reads whatever the cluster sends so the receive buffers never fill, and
 // prints each new ID the first time it is heard. Any frame from the cluster
 // proves the wiring and bitrate on its own.
-void pollReceive(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *label) {
+template <typename Bus>
+void pollReceive(Bus &bus, BusStats &s, const __FlashStringHelper *label) {
   while (bus.checkReceive() == CAN_MSGAVAIL) {
     unsigned long id = 0;
     byte len = 0;
@@ -454,7 +468,8 @@ void pollAllReceive() {
 }
 
 // `#stat`: one bus's counts and a plain verdict on the wiring.
-void printBusStats(mcp2515_can &bus, BusStats &s, const __FlashStringHelper *name) {
+template <typename Bus>
+void printBusStats(Bus &bus, BusStats &s, const __FlashStringHelper *name) {
   uint8_t eflg = 0;
   bus.checkError(&eflg);
   DEBUG_PORT.print(name);
@@ -490,7 +505,7 @@ void printStats() {
   printBusStats(CAN, mainStats, F("HS-CAN (500k)"));
 #endif
 #if MS_CAN_ENABLED
-  printBusStats(MSCAN, msStats, F("MS-CAN (second shield, 125k)"));
+  printBusStats(MSCAN, msStats, F("MS-CAN (125k)"));
 #endif
 }
 
@@ -544,6 +559,21 @@ void handleCommand(const char *cmd) {
     sweeping = true;
     sweepStepStartMs = millis();
     printSweepStep();
+    return;
+  }
+  if (strncmp(cmd, "ohms", 4) == 0) {
+    fuelOhmsOverride = atof(cmd + 4);
+    if (fuelOhmsOverride > 0) {
+      DEBUG_PORT.print(F("fuel stand-in held at "));
+      DEBUG_PORT.print(fuelOhmsOverride, 1);
+      DEBUG_PORT.print(F(" ohms (lowest it reaches: "));
+      DEBUG_PORT.print(1.0f / (1.0f / FUEL_FIXED_OHMS + 1.0f / FUEL_SWITCHED_OHMS), 1);
+      DEBUG_PORT.println(F(") - #ohms 0 to follow the game"));
+    } else {
+      fuelOhmsOverride = 0;
+      DEBUG_PORT.println(F("fuel stand-in follows the game"));
+    }
+    updateFuelSender();
     return;
   }
   if (strncmp(cmd, "watch", 5) == 0) {
@@ -718,11 +748,20 @@ void setup() {
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;
   cluster.fuelPct = 50;
-  if (PIN_FUEL_SENDER >= 0) pinMode(PIN_FUEL_SENDER, OUTPUT);
+  if (PIN_FUEL_SENDER >= 0) {
+    pinMode(PIN_FUEL_SENDER, OUTPUT);
+#if BOARD_CAN_X2
+    analogWriteResolution(PIN_FUEL_SENDER, FUEL_PWM_BITS);
+#endif
+  }
   updateFuelSender();
 
   while (CAN.begin(CAN_SPEED, CAN_CLOCK) != CAN_OK) {
+#if BOARD_CAN_X2
+    DEBUG_PORT.println(F("CAN init failed - check CAN_TX_PIN/CAN_RX_PIN and CAN_SPEED"));
+#else
     DEBUG_PORT.println(F("CAN init failed - check shield, CS pin and crystal setting"));
+#endif
     delay(500);
   }
   DEBUG_PORT.println(F("CAN ready - ATS Mazda 3 cluster bridge"));
@@ -732,6 +771,10 @@ void setup() {
 
 #if MS_CAN_ENABLED
   // Don't hang here if the module is missing: the gauges still work without it.
+#if BOARD_CAN_X2
+  // The board's MCP2515 sits on GPIO12 (SCK), 13 (MISO) and 11 (MOSI).
+  SPI.begin(12, 13, 11);
+#endif
   if (MSCAN.begin(MS_CAN_SPEED, MS_CAN_CLOCK) == CAN_OK) {
     DEBUG_PORT.println(F("MS-CAN ready"));
   } else {

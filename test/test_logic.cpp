@@ -165,6 +165,11 @@ static void testFuelSender() {
   CHECK(fuelSenderDuty(20, 470, 22) == 255);
   // Measured empty (160 ohms): (1/160 - 1/470) * 22 = 0.0907 -> 23/255.
   CHECK(fuelSenderDuty(160, 470, 22) == 23);
+  // ESP32-CAN-X2 board: 10 ohm switched resistor, 10-bit PWM.
+  CHECK(fuelSenderDuty(470, 470, 10, 1023) == 0);
+  CHECK(fuelSenderDuty(175, 470, 10, 1023) == 37);
+  CHECK(fuelSenderDuty(15, 470, 10, 1023) == 660);
+  CHECK(fuelSenderDuty(9, 470, 10, 1023) == 1023);  // below its ~9.8 ohm floor
 }
 
 static void testTurnBlinker() {

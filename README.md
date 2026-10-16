@@ -20,9 +20,11 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/config.h` | Every setting you're likely to change: pins, scaling, timeouts |
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
 | `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
+| `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller, for the ESP32-CAN-X2 |
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
 | `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
 | `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
+| `tools/simhub/Mazda3_Cluster.shsds` | SimHub Custom serial device profile: import it instead of setting SimHub up by hand |
 | `test/test_logic.cpp` | Unit tests for the frame encoding and parser (run on a PC) |
 
 ## Hardware
@@ -30,6 +32,9 @@ gauge, fuel gauge and warning lamps follow the game.
 - 2004–2009 (BK) Mazda 3 instrument cluster (the 2005 is a BK)
 - Arduino Mega 2560 (ATmega2560)
 - Seeed Studio CAN-BUS Shield (MCP2515 + MCP2551, 16 MHz crystal)
+- Or, instead of the Mega and both shields: an Autosport Labs
+  [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2), which has both
+  CAN buses on one board (see [ESP32-CAN-X2](#esp32-can-x2-instead-of-a-mega))
 - 12 V DC supply, at least 1 A (a bench supply or a 12 V wall adapter)
 - A 2–3 A inline fuse for the 12 V feed
 - Optional: a 120 Ω resistor, if your cluster turns out not to terminate the
@@ -43,6 +48,48 @@ gauge, fuel gauge and warning lamps follow the game.
   Jumper **D11→D51, D12→D50, D13→D52**, and bend out or cut the shield's
   D11–D13 pins so they don't fight the Mega.
 - Chip-select is **D9** (very early v1.0 boards used D10; see `CAN_CS_PIN`).
+
+### ESP32-CAN-X2 instead of a Mega
+
+> **Not yet tested on real hardware.** The firmware builds for this board, but
+> it hasn't driven a cluster yet. The Mega setup is the tested one.
+
+The [Autosport Labs ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2)
+(ESP32-S3) has two CAN channels, each with its own transceiver, so it replaces
+the Mega and both shields. The firmware picks the board automatically from
+*Tools → Board*. Nothing in `config.h` needs changing.
+
+| Board | Bus | Cluster positions | Notes |
+|---|---|---|---|
+| **X1** (CAN1, the ESP32's built-in controller, GPIO7 TX / GPIO6 RX) | HS-CAN, 500 kbit/s | 5 (H), 6 (L) | Gauges, check engine, AT, cruise |
+| **X2** (CAN2, onboard MCP2515, 16 MHz, CS GPIO10) | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS. `MS_CAN_ENABLED 1` as before |
+| **VIN / 12 V** (SV2 pins 19/20) | | 2 and 4 supply | 6–20 V in, same 12 V supply as the cluster |
+| **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster and the fuel stand-in |
+| **GPIO14** (SV1 pin 7) | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`), in place of D5 |
+
+The pin order on the 4-pin X1/X2 connectors (+12 V, CAN-H, CAN-L, GND) is
+printed on the board. Autosport Labs warn that the pigtail colours may not
+match their docs, so go by the board's labels, not the wire colours. Both
+channels have 120 Ω termination on by default (pads TERM1/TERM2 on the back),
+which is right for a two-node bench bus with the cluster's own termination at
+the other end. Cut a pad only if `#stat` reports errors and you measure about
+40 Ω across H/L with the power off.
+
+The board's pins are **3.3 V**. That only matters for the fuel stand-in: a
+2N7000 is only partly on with 3.3 V on its gate, so the needle may read high
+until you recalibrate. A logic-level MOSFET such as an IRLB8721 switches fully
+at 3.3 V. [docs/fuel_gauge_wiring_esp32.svg](docs/fuel_gauge_wiring_esp32.svg)
+shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721. It swaps the
+22 Ω switched resistor for 10 Ω, so the stand-in reaches about 10 Ω and full
+can sit on F instead of one tick under (the PWM goes 10-bit to keep fine steps
+near empty). `FUEL_SENDER_FULL_OHMS` starts at a guessed 15 Ω on this board:
+send `#ohms` values to find the one that sits on F and put it in `config.h`.
+[docs/fuel_gauge_protoboard_esp32.svg](docs/fuel_gauge_protoboard_esp32.svg)
+lays it out on the same 6 × 28 protoboard.
+
+The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port
+like the Mega does, so SimTools, SimHub and `tools/cluster_tester.html` work
+unchanged at 115200 baud.
 
 ### Wiring the cluster
 
@@ -363,6 +410,9 @@ If your driver turns the lamp on when the pin is LOW, set
    <https://github.com/Seeed-Studio/Seeed_Arduino_CAN>.
 3. Open `firmware/ATS_Mazda3_Cluster/ATS_Mazda3_Cluster.ino`.
 4. *Tools → Board → Arduino Mega or Mega 2560*, *Processor → ATmega2560*.
+   For the ESP32-CAN-X2: add the esp32 board package (*Boards Manager* →
+   "esp32" by Espressif, v3.x), then *Tools → Board → esp32 → AutosportLabs
+   ESP-CAN-X2*.
 5. Review `config.h`, then upload.
 
 On power-up the board sweeps the tach and speedo to full scale and back, which
@@ -428,6 +478,25 @@ with the python.org installer for Windows.
 ## SimHub setup (alternative to SimTools)
 
 The firmware doesn't care which program sends the text, so SimHub works too.
+
+**Quick setup: import the ready-made profile.** `tools/simhub/Mazda3_Cluster.shsds`
+is a Custom serial device profile with everything below already filled in.
+
+1. In SimHub, enable the **Custom serial devices** plugin.
+2. Open it and use **Import** to load `Mazda3_Cluster.shsds`.
+3. Pick your board's COM port (it's set to COM7) and leave the baud rate at
+   115200.
+
+It sends RPM, speed (mph), coolant, throttle, fuel, gear, the battery and oil
+lamps, parking brake, turn signals, high beam and cruise. Lamps come from
+SimHub's ATS/ETS2 telemetry (`GameRawData.TruckValues.CurrentValues...`), and
+the turn signals and parking brake fall back to SimHub's generic properties.
+If a lamp never lights, find its property in SimHub's property picker and
+correct the name in the profile's JavaScript. The free SimHub version sends
+10 updates a second, which is fine: the board keeps the needles at the last
+values between updates.
+
+**Or set it up by hand:**
 
 1. In SimHub, enable the **Custom serial devices** plugin, add a device, and
    pick the Mega's COM port at **115200** baud.
@@ -590,6 +659,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#sweep h 212 4` / `#sweep m 433 3` | Send that ID with every byte `0x00` except the one given (0–7), which steps through `00`–`FF`, one value every 0.4 s, printing each value. For lamps that need one particular value. Add a start value to begin part-way (`#sweep h 212 4 80`) |
 | `#sweep` | Stop a sweep and print the value it stopped at |
 | `#watch` | Toggle printing the cluster's own frames whenever their data changes (`changed HS 0x190 …`). Useful alongside `#sweep` or `#scan`, since the cluster reports some of its own state |
+| `#ohms 15` / `#ohms 0` | Hold the fuel sender stand-in at that resistance, ignoring the game, to find which value sits on F, ½ or E (then set `FUEL_SENDER_FULL/HALF/EMPTY_OHMS`). `#ohms 0` follows the game again |
 | `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
