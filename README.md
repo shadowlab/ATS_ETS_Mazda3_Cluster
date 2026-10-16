@@ -24,6 +24,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
 | `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
 | `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
+| `tools/simhub/Mazda3_Cluster.shsds` | SimHub Custom serial device profile: import it instead of setting SimHub up by hand |
 | `test/test_logic.cpp` | Unit tests for the frame encoding and parser (run on a PC) |
 
 ## Hardware
@@ -477,6 +478,25 @@ with the python.org installer for Windows.
 ## SimHub setup (alternative to SimTools)
 
 The firmware doesn't care which program sends the text, so SimHub works too.
+
+**Quick setup: import the ready-made profile.** `tools/simhub/Mazda3_Cluster.shsds`
+is a Custom serial device profile with everything below already filled in.
+
+1. In SimHub, enable the **Custom serial devices** plugin.
+2. Open it and use **Import** to load `Mazda3_Cluster.shsds`.
+3. Pick your board's COM port (it's set to COM7) and leave the baud rate at
+   115200.
+
+It sends RPM, speed (mph), coolant, throttle, fuel, gear, the battery and oil
+lamps, parking brake, turn signals, high beam and cruise. Lamps come from
+SimHub's ATS/ETS2 telemetry (`GameRawData.TruckValues.CurrentValues...`), and
+the turn signals and parking brake fall back to SimHub's generic properties.
+If a lamp never lights, find its property in SimHub's property picker and
+correct the name in the profile's JavaScript. The free SimHub version sends
+10 updates a second, which is fine: the board keeps the needles at the last
+values between updates.
+
+**Or set it up by hand:**
 
 1. In SimHub, enable the **Custom serial devices** plugin, add a device, and
    pick the Mega's COM port at **115200** baud.
