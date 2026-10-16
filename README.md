@@ -20,6 +20,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/config.h` | Every setting you're likely to change: pins, scaling, timeouts |
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
 | `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
+| `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller, for the ESP32-CAN-X2 |
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
 | `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
 | `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
@@ -30,6 +31,9 @@ gauge, fuel gauge and warning lamps follow the game.
 - 2004–2009 (BK) Mazda 3 instrument cluster (the 2005 is a BK)
 - Arduino Mega 2560 (ATmega2560)
 - Seeed Studio CAN-BUS Shield (MCP2515 + MCP2551, 16 MHz crystal)
+- Or, instead of the Mega and both shields: an Autosport Labs
+  [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2), which has both
+  CAN buses on one board (see [ESP32-CAN-X2](#esp32-can-x2-instead-of-a-mega))
 - 12 V DC supply, at least 1 A (a bench supply or a 12 V wall adapter)
 - A 2–3 A inline fuse for the 12 V feed
 - Optional: a 120 Ω resistor, if your cluster turns out not to terminate the
@@ -43,6 +47,41 @@ gauge, fuel gauge and warning lamps follow the game.
   Jumper **D11→D51, D12→D50, D13→D52**, and bend out or cut the shield's
   D11–D13 pins so they don't fight the Mega.
 - Chip-select is **D9** (very early v1.0 boards used D10; see `CAN_CS_PIN`).
+
+### ESP32-CAN-X2 instead of a Mega
+
+> **Not yet tested on real hardware.** The firmware builds for this board, but
+> it hasn't driven a cluster yet. The Mega setup is the tested one.
+
+The [Autosport Labs ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2)
+(ESP32-S3) has two CAN channels, each with its own transceiver, so it replaces
+the Mega and both shields. The firmware picks the board automatically from
+*Tools → Board*. Nothing in `config.h` needs changing.
+
+| Board | Bus | Cluster positions | Notes |
+|---|---|---|---|
+| **X1** (CAN1, the ESP32's built-in controller, GPIO7 TX / GPIO6 RX) | HS-CAN, 500 kbit/s | 5 (H), 6 (L) | Gauges, check engine, AT, cruise |
+| **X2** (CAN2, onboard MCP2515, 16 MHz, CS GPIO10) | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS. `MS_CAN_ENABLED 1` as before |
+| **VIN / 12 V** (SV2 pins 19/20) | | 2 and 4 supply | 6–20 V in, same 12 V supply as the cluster |
+| **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster and the fuel stand-in |
+| **GPIO14** (SV1 pin 7) | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`), in place of D5 |
+
+The pin order on the 4-pin X1/X2 connectors (+12 V, CAN-H, CAN-L, GND) is
+printed on the board. Autosport Labs warn that the pigtail colours may not
+match their docs, so go by the board's labels, not the wire colours. Both
+channels have 120 Ω termination on by default (pads TERM1/TERM2 on the back),
+which is right for a two-node bench bus with the cluster's own termination at
+the other end. Cut a pad only if `#stat` reports errors and you measure about
+40 Ω across H/L with the power off.
+
+The board's pins are **3.3 V**. That only matters for the fuel stand-in: a
+2N7000 is only partly on with 3.3 V on its gate, so the needle may read high
+until you recalibrate. A logic-level MOSFET such as an IRLB8721 switches fully
+at 3.3 V.
+
+The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port
+like the Mega does, so SimTools, SimHub and `tools/cluster_tester.html` work
+unchanged at 115200 baud.
 
 ### Wiring the cluster
 
@@ -363,6 +402,9 @@ If your driver turns the lamp on when the pin is LOW, set
    <https://github.com/Seeed-Studio/Seeed_Arduino_CAN>.
 3. Open `firmware/ATS_Mazda3_Cluster/ATS_Mazda3_Cluster.ino`.
 4. *Tools → Board → Arduino Mega or Mega 2560*, *Processor → ATmega2560*.
+   For the ESP32-CAN-X2: add the esp32 board package (*Boards Manager* →
+   "esp32" by Espressif, v3.x), then *Tools → Board → esp32 → AutosportLabs
+   ESP-CAN-X2*.
 5. Review `config.h`, then upload.
 
 On power-up the board sweeps the tach and speedo to full scale and back, which
