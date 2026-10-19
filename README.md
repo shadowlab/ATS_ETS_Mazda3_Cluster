@@ -268,7 +268,10 @@ To check it, with the cluster powered measure the DC voltage across positions
 2/1. On the bench cluster, D5 unconnected read 6.6 V (470 Ω, needle on E).
 With the old straight-line calibration, 0/25/50/75/100 % read
 6.20/5.51/4.41/2.96/0.70 V, as calculated. The needle follows the slider
-without an ignition cycle, but give it several seconds to settle.
+without an ignition cycle, but give it several seconds to settle. When
+checking a calibration point, power cycle the cluster and read the needle
+then: on the bench, `#ohms 20` looked like F right after other moves but read
+one tick under F after a power cycle, while 16.8 Ω landed on F.
 
 ### Turn signals and high beam
 
@@ -603,7 +606,7 @@ the cluster plug, not CAN.
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
 | SRS airbag lamp | MS-CAN | `0x460` | On by default; sending the frame turns it off |
 | Seat belt chime (off) | MS-CAN | `0x460` byte 1 = `0xFF` | With byte 1 = `0x00` the seat belt lamp flashes and chimes about once a minute |
-| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in. 100 % read one tick under F with 22 Ω; 10 Ω should reach F (not yet tested) |
+| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in. With the 10 Ω switched resistor, 100 % (16.8 Ω) lands on F after a power cycle (the first 22 Ω build stopped one tick under) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
 | Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/8085 mile per count (`ODO_MILES_PER_COUNT`). Confirmed on a 2005 cluster: 5 minutes at 60 mph reads 5.0 miles. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
