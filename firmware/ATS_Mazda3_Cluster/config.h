@@ -184,12 +184,12 @@
 // 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
 // F (the stand-in can't go much below 21 ohms with a 22 ohm switched
 // resistor, so 100 % reads one tick under F on the Mega board).
-// The ESP32-CAN-X2 board uses a 10 ohm switched resistor, which reaches about
-// 10 ohms, so full can sit right on F. 15 is a first guess, not measured:
-// find the value that sits on F with the `#ohms` serial command and put it
-// here.
+// Fixed resistors on the same cluster: 16.8 ohms sits right on F and 10 ohms
+// goes past it. The ESP32-CAN-X2 board's 10 ohm switched resistor reaches
+// about 10 ohms, so it can show a true F. (`#ohms <n>` holds the stand-in at
+// n ohms to re-check any of these values.)
 #if BOARD_CAN_X2
-#define FUEL_SENDER_FULL_OHMS  15.0f
+#define FUEL_SENDER_FULL_OHMS  16.8f
 #else
 #define FUEL_SENDER_FULL_OHMS  20.0f
 #endif

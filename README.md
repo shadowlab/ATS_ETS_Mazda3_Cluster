@@ -82,8 +82,8 @@ at 3.3 V. [docs/fuel_gauge_wiring_esp32.svg](docs/fuel_gauge_wiring_esp32.svg)
 shows the stand-in wired to the ESP32-CAN-X2 with an IRLB8721. It swaps the
 22 Ω switched resistor for 10 Ω, so the stand-in reaches about 10 Ω and full
 can sit on F instead of one tick under (the PWM goes 10-bit to keep fine steps
-near empty). `FUEL_SENDER_FULL_OHMS` starts at a guessed 15 Ω on this board:
-send `#ohms` values to find the one that sits on F and put it in `config.h`.
+near empty). `FUEL_SENDER_FULL_OHMS` is 16.8 Ω on this board, measured with fixed
+resistors on a 2005 cluster (10 Ω goes past F).
 [docs/fuel_gauge_protoboard_esp32.svg](docs/fuel_gauge_protoboard_esp32.svg)
 lays it out on the same 6 × 28 protoboard.
 
