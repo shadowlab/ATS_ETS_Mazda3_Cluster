@@ -23,6 +23,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
 | `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
 | `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
+| `tools/simhub/Mazda3_Cluster.shsds` | SimHub Custom serial device profile: import it instead of setting SimHub up by hand |
 | `test/test_logic.cpp` | Unit tests for the frame encoding and parser (run on a PC) |
 
 ## Hardware
@@ -159,7 +160,7 @@ The fuel gauge isn't on CAN. The cluster reads the tank sender's resistance
 on 24-pin positions 1/2 (`2W`/`2U`): low resistance is full, high is empty.
 The 2005 manual on lemon-manuals.la gives no resistance values. On a
 bench-tested 2005 cluster, about 160 Ω puts the needle on E, 54 Ω on half,
-and 20 Ω one tick under F. The needle moves about evenly with the log of the
+20 Ω one tick under F and 16.8 Ω right on F (10 Ω goes past F). The needle moves about evenly with the log of the
 resistance, not in a straight line, and the firmware follows that curve.
 
 **1. Check the gauge with fixed resistors first** (cluster powered, no game
@@ -182,7 +183,7 @@ needed):
   turn the ignition on, keep holding about 5 s until `tESt` shows, release
   within 3 s, then press the button to step to check code 23 (fuel gauge).
 
-**2. Sender stand-in** (complete and tested on a real 2005 cluster: 0 % on E, 25/50/75 % close to 1/4, 1/2 and 3/4, 100 % one tick under F). A fixed resistor
+**2. Sender stand-in** (tested on a real 2005 cluster with a 22 Ω switched resistor: 0 % on E, 25/50/75 % close to 1/4, 1/2 and 3/4, 100 % one tick under F. It now uses 10 Ω, and 100 % (16.8 Ω) lands on F after a power cycle). A fixed resistor
 sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
@@ -197,28 +198,35 @@ underneath):
 | Part | Goes between |
 |---|---|
 | 470 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
-| 22 Ω, 0.25 W, in series with a small N-MOSFET (2N7000, or any logic-level one) | Sense side → 22 Ω → drain; source → return side |
+| 10 Ω, 0.25 W, in series with a small N-MOSFET (2N7000, or any logic-level one) | Sense side → 10 Ω → drain; source → return side |
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
 | 100 Ω | Mega `D5` → MOSFET gate |
 | 10 kΩ | Gate → source (keeps it off while the Mega boots) |
 | Wire | MOSFET source / return side → a Mega GND pin |
 
-The GND wire must go to a GND pin on the Mega itself. On bench ground with
-the Mega ungrounded, the MOSFET only half switched on and the readings were
-wrong. The return side must be at cluster ground (step 1) for the Mega GND
+**The GND wire must go to a GND pin on the Mega itself, not to power ground.**
+Even with the Mega and the 12 V supply sharing ground, this board has failed
+twice with its ground on power ground: once the MOSFET only half switched on
+and the voltages were wrong, and once the voltages followed `#ohms` but the
+needle stayed on half. Both times moving the wire to a Mega GND pin fixed it.
+The return side must be at cluster ground (step 1) for the Mega GND
 link to be safe. If it isn't, stop and ask before wiring this up. The current is small
 (about 32 mA at most), so quarter-watt resistors and a 2N7000 are plenty.
 
 `PIN_FUEL_SENDER` is 5 in `config.h` by default (set -1 without the board). The `F` field (0–100 %) then sets
-the PWM duty. The duty is about 9% at empty (pulling 470 Ω down to 160 Ω) and
-fully on at full, and the gauge moves between the two. With the 22 Ω switched
-resistor the pair can't go below about 21 Ω, so 100 % reads one tick under F.
+the PWM duty. The duty is about 4% at empty (pulling 470 Ω down to 160 Ω) and
+fully on near full, and the gauge moves between the two. With the 10 Ω
+switched resistor the pair reaches about 10 Ω, below the 16.8 Ω that reads F.
+(The first build used 22 Ω, which stopped at about 21 Ω, one tick under F.)
 
 To check it, with the cluster powered measure the DC voltage across positions
 2/1. On the bench cluster, D5 unconnected read 6.6 V (470 Ω, needle on E).
 With the old straight-line calibration, 0/25/50/75/100 % read
 6.20/5.51/4.41/2.96/0.70 V, as calculated. The needle follows the slider
-without an ignition cycle, but give it several seconds to settle.
+without an ignition cycle, but give it several seconds to settle. When
+checking a calibration point, power cycle the cluster and read the needle
+then: on the bench, `#ohms 20` looked like F right after other moves but read
+one tick under F after a power cycle, while 16.8 Ω landed on F.
 
 ### Turn signals and high beam
 
@@ -429,6 +437,25 @@ with the python.org installer for Windows.
 
 The firmware doesn't care which program sends the text, so SimHub works too.
 
+**Quick setup: import the ready-made profile.** `tools/simhub/Mazda3_Cluster.shsds`
+is a Custom serial device profile with everything below already filled in.
+
+1. In SimHub, enable the **Custom serial devices** plugin.
+2. Open it and use **Import** to load `Mazda3_Cluster.shsds`.
+3. Pick your board's COM port (it's set to COM7) and leave the baud rate at
+   115200.
+
+It sends RPM, speed (mph), coolant, throttle, fuel, gear, the battery and oil
+lamps, parking brake, turn signals, high beam and cruise. Lamps come from
+SimHub's ATS/ETS2 telemetry (`GameRawData.TruckValues.CurrentValues...`), and
+the turn signals and parking brake fall back to SimHub's generic properties.
+If a lamp never lights, find its property in SimHub's property picker and
+correct the name in the profile's JavaScript. The free SimHub version sends
+10 updates a second, which is fine: the board keeps the needles at the last
+values between updates.
+
+**Or set it up by hand:**
+
 1. In SimHub, enable the **Custom serial devices** plugin, add a device, and
    pick the Mega's COM port at **115200** baud.
 2. Add an **update message** and set it to a computed formula (NCalc):
@@ -531,7 +558,7 @@ the cluster plug, not CAN.
 | Immobilizer (security) lamp | MS-CAN | `0x265` byte 0 = `0x10` | Found, not used |
 | SRS airbag lamp | MS-CAN | `0x460` | On by default; sending the frame turns it off |
 | Seat belt chime (off) | MS-CAN | `0x460` byte 1 = `0xFF` | With byte 1 = `0x00` the seat belt lamp flashes and chimes about once a minute |
-| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in (100 % one tick under F) |
+| Fuel gauge | Wired | 24-pin positions 1/2 (sender resistance) | Complete and tested with the PWM stand-in. With the 10 Ω switched resistor, 100 % (16.8 Ω) lands on F after a power cycle (the first 22 Ω build stopped one tick under) |
 | Oil pressure lamp | Wired | 16-pin position 9 to ground | Confirmed; not driven (no game signal) |
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the second shield on the body bus (MS-CAN); without it the lamp stays on |
 | Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/8085 mile per count (`ODO_MILES_PER_COUNT`). Confirmed on a 2005 cluster: 5 minutes at 60 mph reads 5.0 miles. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
@@ -590,6 +617,7 @@ Serial Monitor (115200 baud, newline line ending), or send them with
 | `#sweep h 212 4` / `#sweep m 433 3` | Send that ID with every byte `0x00` except the one given (0–7), which steps through `00`–`FF`, one value every 0.4 s, printing each value. For lamps that need one particular value. Add a start value to begin part-way (`#sweep h 212 4 80`) |
 | `#sweep` | Stop a sweep and print the value it stopped at |
 | `#watch` | Toggle printing the cluster's own frames whenever their data changes (`changed HS 0x190 …`). Useful alongside `#sweep` or `#scan`, since the cluster reports some of its own state |
+| `#ohms 15` / `#ohms 0` | Hold the fuel sender stand-in at that resistance, ignoring the game, to find which value sits on F, ½ or E (then set `FUEL_SENDER_FULL/HALF/EMPTY_OHMS`). `#ohms 0` follows the game again |
 | `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
 
 Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
@@ -606,7 +634,6 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
   turns the lamp on and off. Without it, the lamp stays on all the time.
 - **Fuel gauge:** complete and tested, but not on CAN. It needs the sender
   stand-in circuit on 24-pin positions 1/2 (see [Fuel gauge](#fuel-gauge)).
-  100 % reads one tick under F.
 - **Turn arrows, high beam and SRS lamp:** need the second shield on the body
   bus (MS-CAN). Without it, they aren't driven and the SRS lamp stays on.
 - **Trip meter and odometer:** driven by the `0x420` byte 1 counter, so game

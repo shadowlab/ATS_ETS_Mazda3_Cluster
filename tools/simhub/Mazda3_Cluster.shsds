@@ -1,0 +1,40 @@
+{
+  "AutomaticReconnect": true,
+  "SerialPortName": "COM7",
+  "StartupDelayMs": 2000,
+  "IsConnecting": false,
+  "IsEnabled": true,
+  "LogIncomingData": false,
+  "IsConnected": false,
+  "BaudRate": 115200,
+  "UpdateMessages": [
+    {
+      "Message": {
+        "Interpreter": 1,
+        "Expression": "// ATS_Mazda3_Cluster: sends one text packet per update, e.g. R1450S72.0T88A35F64B0O0P0L1Y0H0C0G5;\r\n// Truck lamps come from the ATS/ETS2 telemetry (GameRawData), with SimHub's\r\n// generic properties as a fallback for other games.\r\nvar raw = 'GameRawData.TruckValues.CurrentValues.';\r\nfunction get(a, b) { var v = $prop(a); if ((v === null || v === undefined) && b) v = $prop(b); return v; }\r\nfunction num(a, b) { var v = Number(get(a, b)); return isFinite(v) ? v : 0; }\r\nfunction lamp(a, b) { var v = get(a, b); return (v === true || Number(v) > 0) ? '1' : '0'; }\r\n\r\nvar g = String($prop('DataCorePlugin.GameData.Gear') || 'N').toUpperCase();\r\nvar gear = g.charAt(0) == 'R' ? -1 : g == 'N' ? 0 : g == 'P' ? 99 : (parseInt(g, 10) || 0);\r\nvar cruise = lamp(raw + 'DashboardValues.CruiseControl') == '1' ? '2' : '0';\r\n\r\nreturn 'R' + Math.round(num('DataCorePlugin.GameData.Rpms')) +\r\n  'S' + num('DataCorePlugin.GameData.SpeedMph').toFixed(1) +\r\n  'T' + Math.round(num('DataCorePlugin.GameData.WaterTemperature')) +\r\n  'A' + Math.round(num('DataCorePlugin.GameData.Throttle')) +\r\n  'F' + Math.round(num('DataCorePlugin.GameData.FuelPercent')) +\r\n  'B' + lamp(raw + 'DashboardValues.WarningValues.BatteryVoltage') +\r\n  'O' + lamp(raw + 'DashboardValues.WarningValues.OilPressure') +\r\n  'P' + lamp(raw + 'MotorValues.BrakeValues.ParkingBrake', 'DataCorePlugin.GameData.Handbrake') +\r\n  'L' + lamp(raw + 'LightsValues.BlinkerLeftOn', 'DataCorePlugin.GameData.TurnIndicatorLeft') +\r\n  'Y' + lamp(raw + 'LightsValues.BlinkerRightOn', 'DataCorePlugin.GameData.TurnIndicatorRight') +\r\n  'H' + lamp(raw + 'LightsValues.BeamHigh') +\r\n  'C' + cruise +\r\n  'G' + gear + ';';"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    }
+  ],
+  "OnConnectMessage": {
+    "Interpreter": 1,
+    "Expression": ""
+  },
+  "OnDisconnectMessage": {
+    "Interpreter": 1,
+    "Expression": ""
+  },
+  "DtrEnable": true,
+  "RtsEnable": false,
+  "EditorExpanded": true,
+  "Name": "Mazda 3 cluster",
+  "Description": "2005 Mazda 3 instrument cluster driven by the ATS_Mazda3_Cluster firmware. Pick your board's COM port.",
+  "LastErrorDate": "0001-01-01T00:00:00",
+  "LastErrorMessage": null,
+  "IsFreezed": false,
+  "SettingsBuilder": {
+    "Settings": [],
+    "IsEditMode": false
+  }
+}

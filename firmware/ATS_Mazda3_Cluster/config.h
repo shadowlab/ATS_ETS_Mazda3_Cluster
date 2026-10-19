@@ -146,17 +146,22 @@
 // switch properly. Tested on a real 2005 cluster.
 #define PIN_FUEL_SENDER 5
 // Sender resistance the needle shows as full, half and empty. Measured on a
-// 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
-// F (the stand-in can't go much below 21 ohms with a 22 ohm switched
-// resistor, so 100 % reads one tick under F).
-#define FUEL_SENDER_FULL_OHMS  20.0f
+// 2005 cluster with fixed resistors: about 160-175 ohms sits on E, 54 on half,
+// 20 one tick under F, 16.8 right on F, and 10 goes past F. (`#ohms <n>` holds
+// the stand-in at n ohms to re-check any of these values.)
+#define FUEL_SENDER_FULL_OHMS  16.8f
 #define FUEL_SENDER_HALF_OHMS  54.0f
 #define FUEL_SENDER_EMPTY_OHMS 175.0f
-// The two resistors in the stand-in. Together they reach about 21-470 ohms.
-// Anything at or above FUEL_SENDER_EMPTY_OHMS works for the fixed one: the
-// PWM pulls it down to the empty reading.
+// The two resistors in the stand-in. Anything at or above
+// FUEL_SENDER_EMPTY_OHMS works for the fixed one: the PWM pulls it down to the
+// empty reading. The switched one sets the lowest reading: 10 ohms reaches
+// about 10 ohms, past F. (The first board used 22 ohms, which stopped at about
+// 21 ohms, one tick under F.) On the reworked 2N7000 board 100 % lands on F,
+// checked after a power cycle.
 #define FUEL_FIXED_OHMS    470.0f
-#define FUEL_SWITCHED_OHMS 22.0f
+#define FUEL_SWITCHED_OHMS 10.0f
+// PWM resolution. The Mega's analogWrite is 8-bit.
+#define FUEL_PWM_BITS 8
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
