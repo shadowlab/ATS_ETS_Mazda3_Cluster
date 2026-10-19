@@ -81,7 +81,7 @@
 <circle cx="80" cy="400" r="7" fill="#222"/>
 <!-- Notes -->
 <text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
-<text x="40" y="514" font-size="14">• Pin numbers are Lab's 24-pin numbering (top row 1 to 12, left to right). Pin 1 is cluster ground (~1 Ω). Use a GND pin on the Mega itself.</text>
+<text x="40" y="514" font-size="14">• Pin numbers are Lab's 24-pin numbering (top row 1 to 12, left to right). Pin 1 is cluster ground (~1 Ω). Use a Mega GND pin, not power ground.</text>
 <text x="40" y="537" font-size="14">• 2N7000 legs, flat face toward you, legs down: Source, Gate, Drain (left to right); check your part's datasheet. Quarter-watt resistors are fine (max ~32 mA).</text>
 <text x="40" y="560" font-size="14">• Then set PIN_FUEL_SENDER 5 in config.h. Duty ≈ 4% = 160 Ω (empty), 16.8 Ω = F, full duty ≈ 10 Ω. The capacitor smooths the switching.</text>
 <text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground.</text>

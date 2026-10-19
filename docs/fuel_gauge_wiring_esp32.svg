@@ -86,7 +86,7 @@
 <text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
 <text x="40" y="514" font-size="14">• IRLB8721 legs, printed face toward you, legs down: Gate, Drain, Source (left to right). The metal tab is also Drain: keep it clear of ground.</text>
 <text x="40" y="537" font-size="14">• Logic-level MOSFET (threshold 1.35-2.35 V), so the ESP32's 3.3 V turns it fully on. The 22 Ω becomes 10 Ω so full can reach F.</text>
-<text x="40" y="560" font-size="14">• Ground to a GND pin on the ESP32-CAN-X2 itself (SV2 pins 16-18). PIN_FUEL_SENDER is set to 14 automatically on this board.</text>
+<text x="40" y="560" font-size="14">• Ground to an X2 GND pin (SV2 16-18), not power ground. PIN_FUEL_SENDER is set to 14 automatically on this board.</text>
 <text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground. Quarter-watt resistors are fine (max ~32 mA).</text>
 <text x="40" y="606" font-size="14">• Bench readings (Mega board): 160 Ω = E, 54 Ω = half, 20 Ω one tick under F. 10 Ω lets it reach ~10 Ω; find F with #ohms.</text>
 </svg>

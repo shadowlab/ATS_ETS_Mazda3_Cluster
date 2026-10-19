@@ -64,7 +64,7 @@ the Mega and both shields. The firmware picks the board automatically from
 | **X1** (CAN1, the ESP32's built-in controller, GPIO7 TX / GPIO6 RX) | HS-CAN, 500 kbit/s | 5 (H), 6 (L) | Gauges, check engine, AT, cruise |
 | **X2** (CAN2, onboard MCP2515, 16 MHz, CS GPIO10) | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS. `MS_CAN_ENABLED 1` as before |
 | **VIN / 12 V** (SV2 pins 19/20) | | 2 and 4 supply | 6–20 V in, same 12 V supply as the cluster |
-| **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster and the fuel stand-in |
+| **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster. The fuel stand-in's GND wire goes here too, not to power ground |
 | **GPIO14** (SV1 pin 7) | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`), in place of D5 |
 
 The pin order on the 4-pin X1/X2 connectors (+12 V, CAN-H, CAN-L, GND) is
@@ -249,9 +249,12 @@ underneath):
 | 10 kΩ | Gate → source (keeps it off while the Mega boots) |
 | Wire | MOSFET source / return side → a Mega GND pin |
 
-The GND wire must go to a GND pin on the Mega itself. On bench ground with
-the Mega ungrounded, the MOSFET only half switched on and the readings were
-wrong. The return side must be at cluster ground (step 1) for the Mega GND
+**The GND wire must go to a GND pin on the Mega itself, not to power ground.**
+Even with the Mega and the 12 V supply sharing ground, this board has failed
+twice with its ground on power ground: once the MOSFET only half switched on
+and the voltages were wrong, and once the voltages followed `#ohms` but the
+needle stayed on half. Both times moving the wire to a Mega GND pin fixed it.
+On the ESP32-CAN-X2 the same rule applies: use an SV2 GND pin (16–18). The return side must be at cluster ground (step 1) for the Mega GND
 link to be safe. If it isn't, stop and ask before wiring this up. The current is small
 (about 32 mA at most), so quarter-watt resistors and a 2N7000 are plenty.
 
