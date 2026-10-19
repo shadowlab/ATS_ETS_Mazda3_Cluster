@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640" font-family="Arial, Helvetica, sans-serif">
+<rect width="1100" height="640" fill="#fff"/>
+<text x="550" y="38" text-anchor="middle" font-size="24" font-weight="bold">Fuel gauge sender stand-in: ESP32-CAN-X2 + IRLB8721 (not yet tested)</text>
+
+<!-- Cluster plug -->
+<rect x="920" y="110" width="150" height="330" rx="8" fill="#eef3fb" stroke="#2b4a7a" stroke-width="2"/>
+<text x="995" y="140" text-anchor="middle" font-size="17" font-weight="bold">Cluster</text>
+<text x="995" y="160" text-anchor="middle" font-size="14">24-pin plug</text>
+<circle cx="920" cy="190" r="7" fill="#c0392b"/>
+<text x="935" y="187" font-size="15" font-weight="bold">Pin 2 (2U)</text>
+<text x="935" y="206" font-size="13">sense, +11 V open</text>
+<circle cx="920" cy="400" r="7" fill="#222"/>
+<text x="935" y="397" font-size="15" font-weight="bold">Pin 1 (2W)</text>
+<text x="935" y="416" font-size="13">return = ground</text>
+
+<!-- Branch A: 390 ohm -->
+<line x1="820" y1="190" x2="820" y2="250" stroke="#222" stroke-width="2"/>
+<rect x="808" y="250" width="24" height="90" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="820" y1="340" x2="820" y2="400" stroke="#222" stroke-width="2"/>
+<text x="836" y="290" font-size="15" font-weight="bold">470 Ω</text>
+<text x="836" y="308" font-size="12">sets EMPTY</text>
+<circle cx="820" cy="190" r="4"/><circle cx="820" cy="400" r="4"/>
+
+<!-- Branch B: capacitor -->
+<line x1="680" y1="190" x2="680" y2="282" stroke="#222" stroke-width="2"/>
+<line x1="655" y1="282" x2="705" y2="282" stroke="#222" stroke-width="4"/>
+<path d="M655 304 Q680 292 705 304" fill="none" stroke="#222" stroke-width="4"/>
+<line x1="680" y1="298" x2="680" y2="400" stroke="#222" stroke-width="2"/>
+<text x="661" y="272" font-size="16" font-weight="bold">+</text>
+<text x="712" y="280" font-size="15" font-weight="bold">470 µF</text>
+<text x="712" y="298" font-size="12">25 V+, stripe</text>
+<text x="712" y="312" font-size="12">(−) to ground</text>
+<circle cx="680" cy="190" r="4"/><circle cx="680" cy="400" r="4"/>
+
+<!-- Branch C: 22 ohm + MOSFET -->
+<line x1="460" y1="190" x2="460" y2="210" stroke="#222" stroke-width="2"/>
+<rect x="448" y="210" width="24" height="60" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="480" y="236" font-size="15" font-weight="bold">10 Ω</text>
+<text x="480" y="254" font-size="12">pulls toward FULL</text>
+<line x1="460" y1="270" x2="460" y2="292" stroke="#222" stroke-width="2"/>
+<!-- MOSFET symbol -->
+<circle cx="452" cy="318" r="30" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="460" y1="292" x2="460" y2="304" stroke="#222" stroke-width="2"/>
+<line x1="446" y1="304" x2="460" y2="304" stroke="#222" stroke-width="2"/>
+<line x1="446" y1="332" x2="460" y2="332" stroke="#222" stroke-width="2"/>
+<line x1="460" y1="332" x2="460" y2="400" stroke="#222" stroke-width="2"/>
+<line x1="446" y1="298" x2="446" y2="338" stroke="#222" stroke-width="3"/>
+<line x1="438" y1="298" x2="438" y2="338" stroke="#222" stroke-width="2"/>
+<text x="490" y="300" font-size="15" font-weight="bold">IRLB8721</text>
+<text x="490" y="318" font-size="12">D = top (to 10 Ω)</text>
+<text x="490" y="334" font-size="12">S = bottom (to ground)</text>
+<text x="490" y="350" font-size="12">G = left</text>
+<circle cx="460" cy="190" r="4"/><circle cx="460" cy="400" r="4"/>
+
+<!-- Gate drive -->
+<line x1="438" y1="318" x2="390" y2="318" stroke="#222" stroke-width="2"/>
+<rect x="320" y="306" width="70" height="24" fill="#fff" stroke="#222" stroke-width="2"/>
+<text x="355" y="300" text-anchor="middle" font-size="15" font-weight="bold">100 Ω</text>
+<line x1="320" y1="318" x2="230" y2="318" stroke="#2e7d32" stroke-width="3"/>
+<!-- 10k gate to ground -->
+<line x1="410" y1="318" x2="410" y2="340" stroke="#222" stroke-width="2"/>
+<rect x="400" y="340" width="20" height="44" fill="#fff" stroke="#222" stroke-width="2"/>
+<line x1="410" y1="384" x2="410" y2="400" stroke="#222" stroke-width="2"/>
+<text x="352" y="368" font-size="15" font-weight="bold">10 kΩ</text>
+<circle cx="410" cy="318" r="4"/><circle cx="410" cy="400" r="4"/>
+
+<!-- ESP32-CAN-X2 -->
+<rect x="30" y="250" width="200" height="190" rx="8" fill="#eaf5ec" stroke="#2e7d32" stroke-width="2"/>
+<text x="130" y="280" text-anchor="middle" font-size="17" font-weight="bold">ESP32-CAN-X2</text>
+<text x="130" y="300" text-anchor="middle" font-size="13">3.3 V I/O</text>
+<circle cx="230" cy="318" r="7" fill="#2e7d32"/>
+<text x="215" y="323" text-anchor="end" font-size="15" font-weight="bold">GPIO14 (PWM)</text>
+<text x="215" y="341" text-anchor="end" font-size="12">SV1 pin 7</text>
+<circle cx="80" cy="400" r="7" fill="#222"/>
+<text x="95" y="395" font-size="15" font-weight="bold">GND</text>
+<text x="95" y="420" font-size="12">SV2 pin 16-18</text>
+
+<!-- Rails -->
+<line x1="460" y1="190" x2="920" y2="190" stroke="#c0392b" stroke-width="3"/>
+<line x1="80" y1="400" x2="920" y2="400" stroke="#222" stroke-width="3"/>
+<text x="560" y="180" font-size="14" fill="#c0392b">sense line</text>
+<text x="560" y="425" font-size="14">ground line</text>
+
+<circle cx="80" cy="400" r="7" fill="#222"/>
+<!-- Notes -->
+<text x="40" y="490" font-size="15" font-weight="bold">Notes</text>
+<text x="40" y="514" font-size="14">• IRLB8721 legs, printed face toward you, legs down: Gate, Drain, Source (left to right). The metal tab is also Drain: keep it clear of ground.</text>
+<text x="40" y="537" font-size="14">• Logic-level MOSFET (threshold 1.35-2.35 V), so the ESP32's 3.3 V turns it fully on. The 22 Ω becomes 10 Ω so full can reach F.</text>
+<text x="40" y="560" font-size="14">• Ground to an X2 GND pin (SV2 16-18), not power ground. PIN_FUEL_SENDER is set to 14 automatically on this board.</text>
+<text x="40" y="583" font-size="14">• Electrolytic polarity matters: + to pin 2 (sense), striped (−) leg to pin 1 / ground. Quarter-watt resistors are fine (max ~32 mA).</text>
+<text x="40" y="606" font-size="14">• Bench readings (Mega board): 160 Ω = E, 54 Ω = half, 20 Ω one tick under F. 10 Ω lets it reach ~10 Ω; find F with #ohms.</text>
+</svg>
