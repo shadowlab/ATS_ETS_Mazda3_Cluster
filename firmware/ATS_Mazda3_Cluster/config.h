@@ -183,22 +183,16 @@
 // Sender resistance the needle shows as full, half and empty. Measured on a
 // 2005 cluster with fixed resistors: about 160-175 ohms sits on E, 54 on half,
 // 20 one tick under F, 16.8 right on F, and 10 goes past F. (`#ohms <n>` holds
-// the stand-in at n ohms to re-check any of these values.) Through the
-// reworked Mega board (2N7000 + 10 ohms), `#ohms 20` lands right on F, so the
-// Mega uses 20. The X2 keeps the fixed-resistor value until it is checked.
-#if BOARD_CAN_X2
+// the stand-in at n ohms to re-check any of these values.)
 #define FUEL_SENDER_FULL_OHMS  16.8f
-#else
-#define FUEL_SENDER_FULL_OHMS  20.0f
-#endif
 #define FUEL_SENDER_HALF_OHMS  54.0f
 #define FUEL_SENDER_EMPTY_OHMS 175.0f
 // The two resistors in the stand-in. Anything at or above
 // FUEL_SENDER_EMPTY_OHMS works for the fixed one: the PWM pulls it down to the
 // empty reading. The switched one sets the lowest reading: 10 ohms reaches
 // about 10 ohms, past F. (The first board used 22 ohms, which stopped at about
-// 21 ohms, one tick under F.) To recalibrate F, find the `#ohms` value that
-// lands on F and put it in FUEL_SENDER_FULL_OHMS.
+// 21 ohms, one tick under F.) If 100 % sits a little under F on a 2N7000
+// board, its own on-resistance is adding a few ohms: try 12 here.
 #define FUEL_FIXED_OHMS    470.0f
 #define FUEL_SWITCHED_OHMS 10.0f
 // PWM resolution. The Mega's analogWrite is 8-bit. The ESP32 runs 10-bit, so

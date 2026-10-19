@@ -263,9 +263,6 @@ the PWM duty. The duty is about 4% at empty (pulling 470 Ω down to 160 Ω) and
 fully on near full, and the gauge moves between the two. With the 10 Ω
 switched resistor the pair reaches about 10 Ω, below the 16.8 Ω that reads F.
 (The first build used 22 Ω, which stopped at about 21 Ω, one tick under F.)
-On the reworked Mega board `#ohms 20` lands the needle right on F, so
-`FUEL_SENDER_FULL_OHMS` is 20 on the Mega (16.8 on the ESP32-CAN-X2 until
-it's checked there). Use `#ohms` to find F again on a new board.
 
 To check it, with the cluster powered measure the DC voltage across positions
 2/1. On the bench cluster, D5 unconnected read 6.6 V (470 Ω, needle on E).
