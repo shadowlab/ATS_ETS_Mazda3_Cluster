@@ -181,30 +181,20 @@
 #define PIN_FUEL_SENDER 5
 #endif
 // Sender resistance the needle shows as full, half and empty. Measured on a
-// 2005 cluster: about 160-175 ohms sits on E, 54 on half, and 20 one tick under
-// F (the stand-in can't go much below 21 ohms with a 22 ohm switched
-// resistor, so 100 % reads one tick under F on the Mega board).
-// Fixed resistors on the same cluster: 16.8 ohms sits right on F and 10 ohms
-// goes past it. The ESP32-CAN-X2 board's 10 ohm switched resistor reaches
-// about 10 ohms, so it can show a true F. (`#ohms <n>` holds the stand-in at
-// n ohms to re-check any of these values.)
-#if BOARD_CAN_X2
+// 2005 cluster with fixed resistors: about 160-175 ohms sits on E, 54 on half,
+// 20 one tick under F, 16.8 right on F, and 10 goes past F. (`#ohms <n>` holds
+// the stand-in at n ohms to re-check any of these values.)
 #define FUEL_SENDER_FULL_OHMS  16.8f
-#else
-#define FUEL_SENDER_FULL_OHMS  20.0f
-#endif
 #define FUEL_SENDER_HALF_OHMS  54.0f
 #define FUEL_SENDER_EMPTY_OHMS 175.0f
 // The two resistors in the stand-in. Anything at or above
 // FUEL_SENDER_EMPTY_OHMS works for the fixed one: the PWM pulls it down to the
-// empty reading. The switched one sets the lowest reading: 22 ohms (Mega
-// board) reaches about 21 ohms, 10 ohms (ESP32-CAN-X2 board) about 10 ohms.
+// empty reading. The switched one sets the lowest reading: 10 ohms reaches
+// about 10 ohms, past F. (The first board used 22 ohms, which stopped at about
+// 21 ohms, one tick under F.) If 100 % sits a little under F on a 2N7000
+// board, its own on-resistance is adding a few ohms: try 12 here.
 #define FUEL_FIXED_OHMS    470.0f
-#if BOARD_CAN_X2
 #define FUEL_SWITCHED_OHMS 10.0f
-#else
-#define FUEL_SWITCHED_OHMS 22.0f
-#endif
 // PWM resolution. The Mega's analogWrite is 8-bit. The ESP32 runs 10-bit, so
 // the smaller switched resistor still gets fine steps near empty.
 #if BOARD_CAN_X2
