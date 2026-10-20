@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1300" height="860" viewBox="0 0 1300 860" font-family="Arial, Helvetica, sans-serif">
 <rect width="1300" height="860" fill="#fff"/>
 <text x="650" y="34" font-size="22" text-anchor="middle" font-weight="bold">Fuel sender stand-in on a 2 × 8 cm protoboard (6 × 28 holes), ESP32-CAN-X2</text>
-<text x="650" y="58" font-size="13" text-anchor="middle" fill="#a33">With a 2N7000 stage so the main MOSFET gets 5 V on its gate (the bench IRLB8721 barely switched at 3.3 V). Orange = new or moved. Needs FUEL_PWM_INVERT 1 (the X2 default).</text>
+<text x="650" y="58" font-size="13" text-anchor="middle" fill="#a33">With a 2N7000 stage so the main MOSFET gets 5 V on its gate (the bench IRLB8721 barely switched at 3.3 V). Tested on a 2005 cluster. Orange = new or moved. Needs FUEL_PWM_INVERT 1 (the X2 default).</text>
 <text x="190" y="96" font-size="18" font-weight="bold">1. Component side (parts on top)</text>
 <rect x="184" y="104" width="852" height="192" rx="6" fill="#2f6b3a" opacity="0.9"/>
 <circle cx="205.0" cy="275.0" r="8" fill="#d4a94a"/>
@@ -948,5 +948,5 @@
 <text x="40" y="736" font-size="13">• The firmware inverts the PWM to match (FUEL_PWM_INVERT 1, the X2 default). At power-up, before the firmware runs, the needle may head toward F.</text>
 <text x="40" y="756" font-size="13">• Checks with the power off: G04 to the ground rail ≈ 10 kΩ, I02 to K02 not 0 Ω (the I column must not touch ground), H02 to K05 0 Ω, D06 to K05 ≈ 4.7 kΩ.</text>
 <text x="40" y="776" font-size="13">• Holes: columns A–Z then A, B (left to right, component side); rows 01–06 from the bottom. Rails: row 06 from P = SENSE, row 01 from B = GROUND.</text>
-<text x="40" y="796" font-size="13">• IRLB8721 legs K05/K04/K03 = G/D/S, printed face toward column J, metal tab (= drain) toward column L. Not yet tested on hardware.</text>
+<text x="40" y="796" font-size="13">• IRLB8721 legs K05/K04/K03 = G/D/S, printed face toward column J, metal tab (= drain) toward column L. Tested on a 2005 cluster.</text>
 </svg>

@@ -39,9 +39,9 @@ gauge, fuel gauge and warning lamps follow the game.
 
 ### ESP32-CAN-X2
 
-> **Not yet tested on real hardware.** The firmware builds for this board, but
-> it hasn't driven a cluster yet. The CAN frames, pinouts and fuel values in
-> this README were all found on a real 2005 cluster with an earlier bench setup.
+> **Tested on a real 2005 cluster** (October 2026): both CAN buses, the gauges,
+> lamps and the fuel stand-in with the 2N7000 driver stage work on the
+> ESP32-CAN-X2.
 
 The [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2) has two CAN
 channels, each with its own transceiver, one for each of the cluster's buses.
@@ -212,7 +212,7 @@ E, 25/50/75 % close to 1/4, 1/2 and 3/4, and with the 10 Ω switched resistor
 100 % lands on F after a power cycle). On the ESP32-CAN-X2 the PWM is
 confirmed on GPIO14, but the 3.3 V gate drive below left the bench IRLB8721
 barely on, so the protoboard drawing adds a 2N7000 stage that drives the gate
-from 5 V. That rework isn't tested yet. A fixed resistor
+from 5 V. With that stage the fuel gauge works on the X2. A fixed resistor
 sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
