@@ -2,15 +2,25 @@
 Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster and obtain readings from ATS or ETS on the real gauges!
 
 ```
-American Truck      SimTools          Autosport Labs      HS-CAN 500k   2005 Mazda 3
-Simulator   ──────► or SimHub   ────► ESP32-CAN-X2  ────► MS-CAN 125k ─► instrument
-(telemetry)         (USB serial)                                       cluster
+American Truck      SimTools          ESP32-CAN-X2, or        HS-CAN 500k   2005 Mazda 3
+Simulator   ──────► or SimHub   ────► Arduino Mega 2560  ───► MS-CAN 125k ─► instrument
+(telemetry)         (USB serial)      + Seeed CAN shields                   cluster
 ```
 
 SimTools or SimHub reads ATS telemetry and streams it as text over USB serial. The
-ESP32-CAN-X2 parses it and continuously sends the CAN frames the cluster would normally get
+board parses it and continuously sends the CAN frames the cluster would normally get
 from the engine computer (PCM) and ABS unit, so the tach, speedo, temperature
 gauge, fuel gauge and warning lamps follow the game.
+
+The same firmware runs on two hardware setups, each with its own section below:
+
+- [ESP32-CAN-X2](#setup-1-esp32-can-x2): one Autosport Labs board with both CAN
+  buses built in.
+- [Arduino Mega 2560 + Seeed CAN-BUS shields](#setup-2-arduino-mega-2560--seeed-can-bus-shields):
+  the original build, one shield per bus.
+
+The sketch picks the right settings for the board selected in the Arduino IDE.
+Both setups are tested on a real 2005 cluster.
 
 ## Repository layout
 
@@ -20,7 +30,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/config.h` | Every setting you're likely to change: pins, scaling, timeouts |
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
 | `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
-| `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller (HS-CAN) |
+| `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller (HS-CAN on the ESP32-CAN-X2 only) |
 | `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
 | `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
 | `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
@@ -29,22 +39,28 @@ gauge, fuel gauge and warning lamps follow the game.
 
 ## Hardware
 
+Common to both setups:
+
 - 2004–2009 (BK) Mazda 3 instrument cluster (the 2005 is a BK)
-- Autosport Labs [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2)
-  (ESP32-S3), which has both CAN buses on one board
 - 12 V DC supply, at least 1 A (a bench supply or a 12 V wall adapter)
 - A 2–3 A inline fuse for the 12 V feed
 - Optional: a 120 Ω resistor, if your cluster turns out not to terminate the
   CAN bus itself (see [Termination](#wiring-the-cluster))
+- Parts for the fuel sender stand-in (see [Fuel gauge](#fuel-gauge))
 
-### ESP32-CAN-X2
+Plus the controller from one of the two setups below.
+
+### Setup 1: ESP32-CAN-X2
 
 > **Tested on a real 2005 cluster** (October 2026): both CAN buses, the gauges,
 > lamps and the fuel stand-in with the 2N7000 driver stage work on the
 > ESP32-CAN-X2.
 
-The [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2) has two CAN
-channels, each with its own transceiver, one for each of the cluster's buses.
+- Autosport Labs [ESP32-CAN-X2](https://wiki.autosportlabs.com/ESP32-CAN-X2)
+  (ESP32-S3)
+
+The board has two CAN channels, each with its own transceiver, one for each of
+the cluster's buses.
 
 | Board | Bus | Cluster positions | Notes |
 |---|---|---|---|
@@ -52,7 +68,8 @@ channels, each with its own transceiver, one for each of the cluster's buses.
 | **X2** (CAN2, onboard MCP2515, 16 MHz, CS GPIO10) | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS, BRAKE (`MS_CAN_ENABLED 1`) |
 | **VIN / 12 V** (SV2 pins 19/20) | | 2 and 4 supply | 6–20 V in, same 12 V supply as the cluster |
 | **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster. The fuel stand-in's GND wire goes here too, not to power ground |
-| **GPIO14** (SV1 pin 7) | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`) |
+| **GPIO14** (SV1 pin 7) | | | Fuel stand-in driver input (`PIN_FUEL_SENDER`) |
+| **5 V** (SV2 pins 14/15) | | | Pull-up for the fuel stand-in's MOSFET gate |
 
 The 4-pin X1/X2 connectors aren't labelled pin by pin. Looking down on the
 board with the connectors at the bottom edge (USB-C on the left), each one
@@ -62,15 +79,117 @@ their docs, so check with a meter before connecting: about 120 Ω between
 CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin. Only
 CAN-H and CAN-L need connecting; leave +12 V open.
 
+**Termination:** both channels have 120 Ω on by default (pads TERM1/TERM2 on
+the back). Cut a pad only if `#stat` reports errors and you read about 40 Ω
+across CAN-H/CAN-L with the power off.
+
 The board's pins are **3.3 V**. Never connect one straight to a cluster input,
 which works at 12 V. The fuel stand-in gets a small 2N7000 stage that drives
 its MOSFET's gate from the board's 5 V output, because the bench IRLB8721
-barely conducted with 3.3 V on its gate (see [Fuel gauge](#fuel-gauge)).
+barely conducted with 3.3 V on its gate (see
+[Stand-in on the ESP32-CAN-X2](#stand-in-on-the-esp32-can-x2)).
 
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port, and
 SimTools, SimHub and the tools in `tools/` talk to it at 115200 baud.
 
-### Wiring the cluster
+### Setup 2: Arduino Mega 2560 + Seeed CAN-BUS shields
+
+- Arduino Mega 2560 (ATmega2560)
+- Seeed Studio CAN-BUS Shield (MCP2515 + MCP2551, 16 MHz crystal) for the gauge
+  bus
+- A second Seeed CAN-BUS Shield, or a loose MCP2515 module, for the body bus
+  (high beam, turn arrows, SRS, BRAKE). Without it the gauges still work.
+
+| Board | Bus | Cluster positions | Notes |
+|---|---|---|---|
+| **First shield** (CS D9) | HS-CAN, 500 kbit/s | 5 (H), 6 (L) | Gauges, check engine, AT, cruise |
+| **Second shield** (CS D10) or MCP2515 module | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS, BRAKE (`MS_CAN_ENABLED 1`) |
+| **GND** | | 3, 11 | Common ground with the cluster. The fuel stand-in's GND wire goes here too, not to power ground |
+| **D5** | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`) |
+
+The Mega is powered over USB from the PC. The Seeed shield has a 120 Ω
+termination fitted (on some revisions it's a solder jumper or switch).
+
+#### Shield on a Mega
+
+- **Shield v2.0**: plugs straight in. It takes SPI from the 6-pin ICSP header,
+  which the Mega also has.
+- **Shield v1.x**: routes SPI to D11–D13, but the Mega's SPI is on D50–D52.
+  Jumper **D11→D51, D12→D50, D13→D52**, and bend out or cut the shield's
+  D11–D13 pins so they don't fight the Mega.
+- Chip-select is **D9** (very early v1.0 boards used D10; see `CAN_CS_PIN`).
+
+#### Second MCP2515 for the body bus
+
+To drive the gauges and the body bus at the same time, you need a second
+MCP2515. Either option works:
+
+![Mega with two stacked shields, outline in mm](docs/shield_stack_dimensions.svg)
+
+Mega figures are from Arduino's drawing, shield figures from Seeed's CAN-BUS Shield V2.0
+drawing, with the screw terminals swapped for Phoenix Contact 1803277
+right-angle headers (wires on 5447861 plugs). The header stands 7.25 mm above
+the PCB, about 7.7 mm with the plug in. The DB9 ports stay: Seeed's drawing
+puts them 14.7 mm above the PCB. On the real stack Lab measured 2.8 mm from
+the lower shield's DB9 to the upper shield and 7.8 mm between the two Phoenix
+plugs, so the gap between shields is about 17.5 mm (overall about 48 mm). The plug hangs about 3.4 mm below the PCB past
+the header, so check it clears whatever sits under it.
+
+**A second Seeed CAN-BUS shield, stacked on the first** (the `config.h` defaults:
+`MS_CAN_CS_PIN 10`, `MS_CAN_CLOCK MCP_16MHz`):
+
+- **Chip select:** the two shields can't share D9. Move the second shield's
+  chip select to **D10** with the CS selection pads on its board (cut the D9
+  link and bridge D10).
+- **SPI:** the shields take SPI from the Mega's 6-pin ICSP header. Check that
+  the lower shield passes the ICSP header up to the top one. If it doesn't,
+  wire the top shield's ICSP pins to D50 (MISO), D51 (MOSI) and D52 (SCK).
+- **Interrupt pin:** both shields drive D2 as their interrupt output, and two
+  outputs on one pin fight each other. The firmware doesn't use it, so bend out
+  or cut the top shield's D2 pin.
+- **Old jumpers:** remove any jumper wires on D10–D13 or D48–D51 from earlier,
+  because D10 is now a chip select.
+- **Termination:** keep the second shield's 120 Ω termination fitted, since the
+  body bus has no other nodes on the bench.
+- Wire the second shield's CAN-H/CAN-L to cluster positions 7 (`1M`) / 8 (`1O`).
+
+**Or a loose MCP2515 module**, such as the common blue board with a TJA1050
+transceiver:
+
+| Module pin | Mega pin |
+|---|---|
+| VCC | 5V |
+| GND | GND |
+| SCK | D52 |
+| SI | D51 |
+| SO | D50 |
+| CS | D53 (set `MS_CAN_CS_PIN 53`) |
+| INT | not needed |
+| CAN-H / CAN-L | cluster positions 7 (`1M`) / 8 (`1O`) |
+
+Check the crystal on the module: most read `8.000` (set `MS_CAN_CLOCK
+MCP_8MHz`), and some read `16.000` (`MCP_16MHz`). Fit the module's 120 Ω
+termination jumper if it has one, since the body bus has no other nodes on the
+bench.
+
+Either way, `MS_CAN_ENABLED` is 1 in `config.h` by default (set 0 without a
+second module).
+
+#### Body bus test with one shield
+
+Before you have the second MCP2515, you can still reach the body bus with the
+one shield. Set `BODY_BUS_TEST 1` in `config.h`, upload, and move the shield's
+CAN-H/CAN-L wires from cluster positions 5/6 to 7 (`1M`, H) / 8 (`1O`, L). The
+shield then runs at 125 kbit/s and the needles stop (their frames are switched
+off so they can't mask the test). The Serial Monitor prints `BODY BUS TEST` at
+boot. `#scan h` and `#...` custom frames now go out on the body bus, so use
+`#7FF 00` in place of `#m7FF 00` in the
+[body bus check](#reaching-the-body-bus-ms-can), and `#scan h` in place of
+`#scan m` in [Finding the lamp frames](#finding-the-lamp-frames). Frames the
+cluster sends print as `heard MS (main shield) 0x...`. Set it back to `0` and
+move the wires back afterwards.
+
+## Wiring the cluster
 
 The pin numbers below come from the factory wiring diagram for the 2005
 Mazda 3 2.3L instrument cluster (diagrams 0922-1a to 0922-1d). The cluster has
@@ -78,6 +197,15 @@ two connectors on the back: a 16-pin one (pins `1A`–`1P`) and a 24-pin one
 (pins `2A`–`2X`). Wire colours are the car harness side, so they only help if
 you cut the plugs from a donor car. Check each pin with a multimeter on your
 own cluster before you power it, because other markets and years may differ.
+
+The tables below name the board side by function. This is where each one is on
+the two setups:
+
+| Board side | ESP32-CAN-X2 | Mega + shields |
+|---|---|---|
+| HS-CAN H / L | X1 CAN-H / CAN-L | First shield CAN-H / CAN-L |
+| MS-CAN H / L | X2 CAN-H / CAN-L | Second shield (or MCP2515 module) CAN-H / CAN-L |
+| Board GND | An SV2 GND pin (16–18) | A Mega GND pin |
 
 On the 16-pin plug, the "Position" column counts with the plug held as below,
 looking at the wire side with the latch up: the top row is 1–8 from right to
@@ -96,15 +224,15 @@ the wire colours match a 2005 harness plug in this orientation.
 |---|---|---|---|---|
 | 1 | `1A` | — | Vacant | — |
 | 2 | `1C` | O/B (orange/black) | B+, constant 12 V | 12 V supply + |
-| 3 | `1E` | B/O (black/orange) | Ground | 12 V supply − and X2 GND |
+| 3 | `1E` | B/O (black/orange) | Ground | 12 V supply − and board GND |
 | 4 | `1G` | G/R (green/red) | IG1, ignition 12 V | 12 V supply + |
-| 5 | `1I` | GY/R (grey/red) | HS-CAN H, 500 kbit/s | X1 CAN-H |
-| 6 | `1K` | L/R (blue/red) | HS-CAN L, 500 kbit/s | X1 CAN-L |
-| 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus): high beam, turn arrows, SRS lamp | X2 CAN-H |
-| 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | X2 CAN-L |
+| 5 | `1I` | GY/R (grey/red) | HS-CAN H, 500 kbit/s | HS-CAN H |
+| 6 | `1K` | L/R (blue/red) | HS-CAN L, 500 kbit/s | HS-CAN L |
+| 7 | `1M` | GY/V (grey/violet) | MS-CAN H, 125 kbit/s (body bus): high beam, turn arrows, SRS lamp | MS-CAN H (`MS_CAN_ENABLED 1`). Not the gauge channel, which stays on 5/6 |
+| 8 | `1O` | L/W (blue/white) | MS-CAN L, 125 kbit/s (body bus) | MS-CAN L |
 | 9 | `1B` | B/Y (black/yellow) | Oil pressure switch (grounded = oil lamp on, bench-confirmed) | Leave open |
 | 10 | `1D` | — | Vacant | — |
-| 11 | `1F` | B/O (black/orange) | Ground | 12 V supply − and X2 GND |
+| 11 | `1F` | B/O (black/orange) | Ground | 12 V supply − and board GND |
 | 12 | `1H` | — | Vacant | — |
 | 13 | `1J` | — | Vacant | — |
 | 14 | `1L` | O (orange) | Illumination, +12 V with headlights on | Optional: 12 V via a switch for the backlight |
@@ -112,8 +240,8 @@ the wire colours match a 2005 harness plug in this orientation.
 | 16 | `1P` | B/G (black/green) | Washer fluid-level sensor (only on cars with one) | Leave open |
 
 Positions 5 and 6 are a twisted pair in the harness, as are 7 and 8. The two
-buses run at different speeds, so each has its own channel: X1 on 5/6
-(gauges) and X2 on 7/8 (lamps). Without the body bus on 7/8, the high beam,
+buses run at different speeds, so each needs its own CAN channel: one on 5/6
+(gauges) and one on 7/8 (lamps). Without the body bus on 7/8, the high beam,
 turn arrows and SRS lamp aren't driven (the SRS lamp stays on).
 
 **24-pin plug, every position.** Counted with the plug held the same way, from
@@ -142,10 +270,13 @@ the wire side: the top row is 1–12 from left to right, and the bottom row is
 |---|---|---|---|---|
 | `1C` | 2 | O/B | B+ (constant 12 V, ROOM fuse in the car) | 12 V supply + |
 | `1G` | 4 | G/R | IG1 (ignition 12 V, METER 10 A fuse in the car) | 12 V supply + (the cluster stays dark without it) |
-| `1E` | 3 | B/O | Ground | 12 V supply − **and** X2 GND |
-| `1F` | 11 | B/O | Ground | 12 V supply − **and** X2 GND |
-| `1I` | 5 | GY/R | HS-CAN H (500 kbit/s) | X1 CAN-H |
-| `1K` | 6 | L/R | HS-CAN L (500 kbit/s) | X1 CAN-L |
+| `1E` | 3 | B/O | Ground | 12 V supply − **and** board GND |
+| `1F` | 11 | B/O | Ground | 12 V supply − **and** board GND |
+| `1I` | 5 | GY/R | HS-CAN H (500 kbit/s) | HS-CAN H |
+| `1K` | 6 | L/R | HS-CAN L (500 kbit/s) | HS-CAN L |
+
+On the ESP32-CAN-X2 the 12 V supply also feeds the board (SV2 pins 19/20). The
+Mega runs from USB.
 
 Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
 the car has a 10 A and a 15 A fuse on these lines.
@@ -155,7 +286,7 @@ the car has a 10 A and a 15 A fuse on these lines.
 | Cluster pin | Wire | Signal | Notes |
 |---|---|---|---|
 | `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
-| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | To X2 CAN-H/CAN-L (`MS_CAN_ENABLED 1`). Drives the high beam, turn arrows, SRS lamp and lets BRAKE clear. See [Reaching the body bus](#reaching-the-body-bus-ms-can) |
+| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | To the MS-CAN channel (`MS_CAN_ENABLED 1`), not the gauge channel. Drives the high beam, turn arrows, SRS lamp and lets BRAKE clear. See [Reaching the body bus](#reaching-the-body-bus-ms-can) |
 | `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp (bench-confirmed). ATS has no oil-pressure warning to drive it, so `PIN_OIL_LAMP` is off by default. Leave it open on the bench (open = pressure OK) |
 | `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
 
@@ -171,14 +302,13 @@ unpowered, measure `1I` to `1K` on the bare cluster:
 - About **120 Ω**: the cluster is terminated. Don't add a resistor.
 - **Open circuit**: add a 120 Ω resistor across `1I` and `1K` at the cluster end.
 
-The ESP32-CAN-X2 terminates the other end: both channels have 120 Ω on by
-default (pads TERM1/TERM2 on the back). With both ends terminated and the
-power off, you should read about 60 Ω between CAN-H and CAN-L on X1 (and on
-X2). Cut a pad only if `#stat` reports errors and you read about 40 Ω.
+The board terminates the other end (the ESP32-CAN-X2 on both channels, the
+Seeed shields with their own 120 Ω). With both ends terminated and the power
+off, you should read about 60 Ω between the board's CAN-H and CAN-L.
 
 Twist the CAN-H/CAN-L pair, and keep it away from the 12 V supply leads.
 
-### Fuel gauge
+## Fuel gauge
 
 The fuel gauge isn't on CAN. The cluster reads the tank sender's resistance
 on 24-pin positions 1/2 (`2W`/`2U`): low resistance is full, high is empty.
@@ -207,41 +337,21 @@ needed):
   turn the ignition on, keep holding about 5 s until `tESt` shows, release
   within 3 s, then press the button to step to check code 23 (fuel gauge).
 
-**2. Sender stand-in.** The circuit is tested on a real 2005 cluster (0 % on
-E, 25/50/75 % close to 1/4, 1/2 and 3/4, and with the 10 Ω switched resistor
-100 % lands on F after a power cycle). On the ESP32-CAN-X2 the PWM is
-confirmed on GPIO14, but the 3.3 V gate drive below left the bench IRLB8721
-barely on, so the protoboard drawing adds a 2N7000 stage that drives the gate
-from 5 V. With that stage the fuel gauge works on the X2. A fixed resistor
-sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
-in parallel to pull it toward full. A capacitor smooths the switching, so the
-cluster sees one steady resistance between the two.
+**2. Sender stand-in.** A fixed resistor sets the empty reading, and a MOSFET
+on a PWM pin switches a small resistor in parallel to pull it toward full. A
+capacitor smooths the switching, so the cluster sees one steady resistance
+between the two. The board is laid out on a double-sided 2 × 8 cm protoboard
+(parts on top, solder bridges underneath). Each setup has its own drawings,
+below.
 
-![Fuel sender stand-in wiring](docs/fuel_gauge_wiring_esp32.svg)
-
-(This diagram shows the gate driven straight from GPIO14. The protoboard
-drawing below adds the 2N7000 driver stage from the table.)
-
-Laid out on a double-sided 2 × 8 cm protoboard (parts on top, solder bridges
-underneath):
-
-![Fuel sender stand-in on a protoboard](docs/fuel_gauge_protoboard_esp32.svg)
+Both builds share these parts:
 
 | Part | Goes between |
 |---|---|
 | 470 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
-| 10 Ω, 0.25 W, in series with a logic-level N-MOSFET (IRLB8721) | Sense side → 10 Ω → drain; source → return side |
+| 10 Ω, 0.25 W, in series with an N-MOSFET | Sense side → 10 Ω → drain; source → return side |
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
-| 100 Ω | X2 `GPIO14` (SV1 pin 7) → 2N7000 gate |
-| 10 kΩ | 2N7000 gate → ground (keeps it off while the board boots) |
-| 2N7000 | Source → ground; drain → IRLB8721 gate |
-| 4.7 kΩ | IRLB8721 gate → X2 5 V (SV2 pin 14 or 15) |
-| Wire | MOSFET source / return side → an X2 GND pin (SV2 16–18) |
-
-The 2N7000 inverts the signal (pin high = IRLB8721 off), so `FUEL_PWM_INVERT`
-is 1 on the X2 by default. Set it to 0 if your MOSFET's gate is driven
-straight from the pin. Until the firmware starts, the 4.7 kΩ holds the
-IRLB8721 on, so the needle may head toward F at power-up.
+| Wire | MOSFET source / return side → a GND pin on the board |
 
 **The GND wire must go to a GND pin on the board itself, not to power ground.**
 Even with the board and the 12 V supply sharing ground, the stand-in has
@@ -253,24 +363,73 @@ for that link to be safe. If it isn't, stop and ask before wiring this up.
 The current is small (about 32 mA at most), so quarter-watt resistors are
 plenty.
 
-`PIN_FUEL_SENDER` is 14 in `config.h` by default (set -1 without the
-stand-in). The `F` field (0–100 %) then sets the 10-bit PWM duty. The duty is
-about 4% at empty (pulling 470 Ω down to 160 Ω) and fully on near full, and the
-gauge moves between the two. With the 10 Ω switched resistor the pair reaches
-about 10 Ω, below the 16.8 Ω that reads F. (A 22 Ω switched resistor stops at
-about 21 Ω, one tick under F.)
+The `F` field (0–100 %) sets the PWM duty. The duty is about 4% at empty
+(pulling 470 Ω down to 160 Ω) and fully on near full, and the gauge moves
+between the two. With the 10 Ω switched resistor the pair reaches about 10 Ω,
+below the 16.8 Ω that reads F. (The first build used 22 Ω, which stopped at
+about 21 Ω, one tick under F.) `#ohms N` sets the stand-in to N Ω directly.
 
-To check it, with the cluster powered measure the DC voltage across positions
-2/1. On the bench cluster, with the gate pin unconnected it read 6.6 V (470 Ω,
-needle on E).
-With the old straight-line calibration, 0/25/50/75/100 % read
+### Stand-in on the ESP32-CAN-X2
+
+Tested on a real 2005 cluster with the 2N7000 driver stage. The board's
+3.3 V pins left the bench IRLB8721 barely on, so a 2N7000 drives its gate from
+the board's 5 V instead.
+
+![Fuel sender stand-in wiring, ESP32-CAN-X2](docs/fuel_gauge_wiring_esp32.svg)
+
+(This diagram shows the gate driven straight from GPIO14. The protoboard
+drawing below adds the 2N7000 driver stage from the table.)
+
+![Fuel sender stand-in on a protoboard, ESP32-CAN-X2](docs/fuel_gauge_protoboard_esp32.svg)
+
+| Part | Goes between |
+|---|---|
+| IRLB8721 (logic-level N-MOSFET) | The switched MOSFET in the shared table |
+| 100 Ω | X2 `GPIO14` (SV1 pin 7) → 2N7000 gate |
+| 10 kΩ | 2N7000 gate → ground (keeps it off while the board boots) |
+| 2N7000 | Source → ground; drain → IRLB8721 gate |
+| 4.7 kΩ | IRLB8721 gate → X2 5 V (SV2 pin 14 or 15) |
+| Ground wire | An SV2 GND pin (16–18) |
+
+`PIN_FUEL_SENDER` is 14 in `config.h` (set -1 without the stand-in), with a
+10-bit PWM. The 2N7000 inverts the signal (pin high = IRLB8721 off), so
+`FUEL_PWM_INVERT` is 1 on the X2 by default. Set it to 0 if your MOSFET's gate
+is driven straight from the pin. Until the firmware starts, the 4.7 kΩ holds
+the IRLB8721 on, so the needle may head toward F at power-up.
+
+### Stand-in on the Mega
+
+Tested on a real 2005 cluster (0 % on E, 25/50/75 % close to 1/4, 1/2 and 3/4,
+and with the 10 Ω switched resistor 100 % lands on F after a power cycle). The
+Mega's 5 V pins drive the MOSFET gate directly.
+
+![Fuel sender stand-in wiring, Mega](docs/fuel_gauge_wiring.svg)
+
+![Fuel sender stand-in on a protoboard, Mega](docs/fuel_gauge_protoboard.svg)
+
+| Part | Goes between |
+|---|---|
+| 2N7000, or any logic-level N-MOSFET (an IRLB8721 works too) | The switched MOSFET in the shared table |
+| 100 Ω | Mega `D5` → MOSFET gate |
+| 10 kΩ | Gate → source (keeps it off while the Mega boots) |
+| Ground wire | A Mega GND pin |
+
+`PIN_FUEL_SENDER` is 5 in `config.h` (set -1 without the board), with an 8-bit
+PWM and `FUEL_PWM_INVERT` 0. The X2's driver board also works on the Mega if
+its 4.7 kΩ goes to the Mega's 5 V and `FUEL_PWM_INVERT` is set to 1.
+
+### Checking the stand-in
+
+With the cluster powered, measure the DC voltage across positions 2/1. On the
+bench cluster, with the gate input unconnected it read 6.6 V (470 Ω, needle
+on E). With the old straight-line calibration, 0/25/50/75/100 % read
 6.20/5.51/4.41/2.96/0.70 V, as calculated. The needle follows the slider
 without an ignition cycle, but give it several seconds to settle. When
 checking a calibration point, power cycle the cluster and read the needle
 then: on the bench, `#ohms 20` looked like F right after other moves but read
 one tick under F after a power cycle, while 16.8 Ω landed on F.
 
-### Turn signals and high beam
+## Turn signals and high beam
 
 On this cluster the turn signal and high beam lamps are **not** hard-wired
 inputs. The diagram shows them driven by the cluster's own microcomputer,
@@ -283,7 +442,7 @@ The cluster gets those lamp states over the MS-CAN body bus on `1M`/`1O` (plug
 positions 7/8). On a bench-tested 2005 cluster the high beam lamp is body-bus
 `0x433` byte 3 = `0x40` (the same bit community RX-8/Mazda decodes list), and
 the firmware drives it from the `H` field whenever it can reach the body bus
-(`MS_CAN_ENABLED 1`). The turn arrows are body-bus `0x265`
+(`MS_CAN_ENABLED 1`, or `BODY_BUS_TEST 1` on the Mega). The turn arrows are body-bus `0x265`
 byte 0: `0x20` left, `0x40` right (`0x10` lights the immobilizer lamp). The
 cluster holds an arrow solid while its bit is set, so the firmware flashes it
 from the `L`/`Y` fields (`TURN_BLINK_HALF_MS`, 333 ms by default). If your game
@@ -292,7 +451,7 @@ hazard bit: hazards are `L` and `Y` on together, and both arrows share one
 flasher so they stay in step (`cluster_test.py --hazard` to try it). Nothing in `0x433` on
 HS-CAN lights any of them.
 
-#### Reaching the body bus (MS-CAN)
+### Reaching the body bus (MS-CAN)
 
 **Check the wiring before scanning.** No body-bus ID is published for this
 cluster, so the check doesn't rely on one. CAN makes the receiving node
@@ -311,13 +470,13 @@ nothing answered: check H/L aren't swapped, the positions, and ignition 12 V
 on position 4. If the cluster sends frames of its own, they print as
 `heard MS 0x...` when first seen, which proves the link too. Remove the test
 frame with `#m7FF` afterwards. The same check works on the gauge bus with
-`#7FF 00` (`HS-CAN (500k)`).
+`#7FF 00` (`HS-CAN (500k)`). On a Mega with only one shield, see
+[Body bus test with one shield](#body-bus-test-with-one-shield).
 
-`MS_CAN_ENABLED` is 1 in `config.h` by default. At boot the Serial Monitor
-prints `MS-CAN ready`, or `MS-CAN init failed` if the X2 channel isn't
-answering. The gauges keep working either way.
+At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
+the body-bus channel isn't answering. The gauges keep working either way.
 
-#### Finding the lamp frames
+### Finding the lamp frames
 
 1. Type `#scan m` in the Serial Monitor (or `#scan h` to search the main bus).
    The board sends all-`0xFF` frames on 16 IDs at a time, two seconds per block,
@@ -348,13 +507,20 @@ If your driver turns the lamp on when the pin is LOW, set
 ## Firmware setup
 
 1. Install the **Arduino IDE** (2.x).
-2. *Boards Manager* → install **"esp32" by Espressif** (v3.x).
-3. *Library Manager* → install **"CAN-BUS Shield" by Seeed Studio** (v2.x,
-   which provides `mcp2515_can.h`, used for the X2's MCP2515). Or install it
+2. *Library Manager* → install **"CAN-BUS Shield" by Seeed Studio** (v2.x,
+   which provides `mcp2515_can.h`, used for every MCP2515). Or install it
    from <https://github.com/Seeed-Studio/Seeed_Arduino_CAN>.
-4. Open `firmware/ATS_Mazda3_Cluster/ATS_Mazda3_Cluster.ino`.
-5. *Tools → Board → esp32 → AutosportLabs ESP-CAN-X2*.
-6. Review `config.h`, then upload.
+3. Open `firmware/ATS_Mazda3_Cluster/ATS_Mazda3_Cluster.ino`.
+4. Pick the board for your setup (below), review `config.h`, then upload.
+
+### ESP32-CAN-X2
+
+- *Boards Manager* → install **"esp32" by Espressif** (v3.x).
+- *Tools → Board → esp32 → AutosportLabs ESP-CAN-X2*.
+
+### Mega
+
+- *Tools → Board → Arduino Mega or Mega 2560*, *Processor → ATmega2560*.
 
 On power-up the board sweeps the tach and speedo to full scale and back, which
 shows the CAN link works. If the needles don't move, see
@@ -491,7 +657,7 @@ Each field is an upper-case letter followed by a number, for example
 | `O` | Oil pressure lamp | 0/1. Not on CAN: needs `PIN_OIL_LAMP` and a transistor on position 9 (see `config.h`) |
 | `L` | Left turn signal | 0/1 (body-bus CAN, flashed by the firmware; see [Turn signals and high beam](#turn-signals-and-high-beam)) |
 | `Y` | Right turn signal | 0/1 (body-bus CAN, as above) |
-| `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1`) |
+| `H` | High beam | 0/1 (body-bus CAN; needs `MS_CAN_ENABLED 1`, or `BODY_BUS_TEST 1` on the Mega) |
 | `G` | Gear | negative = R, 0 = N, positive = forward gear, `99` = P. Forward gears show as D with the gear number 1–6 (above 6 shows 6), or as plain D with `GEAR_SHOW_NUMBER 0`. `GEAR_MANUAL_LAMP 1` shows M instead of D. Shows P while the game is paused or closed, and nothing if `G` is never sent |
 | `P` | Parking brake | 0/1 |
 | `C` | Cruise control | 0 off, 1 = switched on (CRUISE MAIN), 2 = engaged (CRUISE and CRUISE MAIN) |
@@ -518,8 +684,8 @@ before it reaches the cluster:
 ## What's mapped so far
 
 Everything below was found on a 2005 (BK) cluster on the bench. HS-CAN is the
-gauge bus (500 kbit/s, positions 5/6, X1). MS-CAN is the body bus
-(125 kbit/s, positions 7/8, X2). "Wired" means a plain wire on
+gauge bus (500 kbit/s, positions 5/6, X1 or the first shield). MS-CAN is the body bus
+(125 kbit/s, positions 7/8, X2 or the second shield). "Wired" means a plain wire on
 the cluster plug, not CAN.
 
 | Gauge or lamp | Bus | Address (CAN ID), byte = value, or pin | Status |
@@ -612,11 +778,11 @@ frame that works, add it to `mazda3_can.h` permanently.
 
 See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 
-- **BRAKE (parking brake) lamp:** needs the body bus (MS-CAN, X2) connected. With it connected, the `P` field (HS `0x212` byte 4 = `0x40`)
+- **BRAKE (parking brake) lamp:** needs the body bus (MS-CAN) connected. With it connected, the `P` field (HS `0x212` byte 4 = `0x40`)
   turns the lamp on and off. Without it, the lamp stays on all the time.
 - **Fuel gauge:** complete and tested, but not on CAN. It needs the sender
   stand-in circuit on 24-pin positions 1/2 (see [Fuel gauge](#fuel-gauge)).
-- **Turn arrows, high beam and SRS lamp:** need the body bus (MS-CAN, X2)
+- **Turn arrows, high beam and SRS lamp:** need the body bus (MS-CAN)
   connected. Without it, they aren't driven and the SRS lamp stays on.
 - **Trip meter and odometer:** driven by the `0x420` byte 1 counter, so game
   distance adds to the cluster's real odometer as well as the trip. Set
@@ -636,7 +802,8 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 
 | Symptom | Check |
 |---|---|
-| `CAN init failed` repeats in the Serial Monitor | The wrong board selected in *Tools → Board* (it must be AutosportLabs ESP-CAN-X2), or `CAN_TX_PIN`/`CAN_RX_PIN` changed from 7/6 |
+| `CAN init failed` repeats in the Serial Monitor (ESP32-CAN-X2) | The wrong board selected in *Tools → Board* (it must be AutosportLabs ESP-CAN-X2), or `CAN_TX_PIN`/`CAN_RX_PIN` changed from 7/6 |
+| `CAN init failed` repeats in the Serial Monitor (Mega) | Wrong CS pin (`CAN_CS_PIN` 9 vs 10), a v1.x shield without the Mega SPI jumpers, or an 8 MHz module (set `CAN_CLOCK MCP_8MHz`) |
 | Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the board and the 12 V supply |
 | Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
