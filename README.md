@@ -66,7 +66,7 @@ the cluster's buses.
 |---|---|---|---|
 | **X1** (CAN1, the ESP32's built-in controller, GPIO7 TX / GPIO6 RX) | HS-CAN, 500 kbit/s | 5 (H), 6 (L) | Gauges, check engine, AT, cruise |
 | **X2** (CAN2, onboard MCP2515, 16 MHz, CS GPIO10) | MS-CAN, 125 kbit/s | 7 (H), 8 (L) | High beam, turn arrows, SRS, BRAKE (`MS_CAN_ENABLED 1`) |
-| **VIN / 12 V** (SV2 pins 19/20) | | 2 and 4 supply | 6–20 V in, same 12 V supply as the cluster |
+| **+12 V / GND on X1 (or X2)** | | 2 and 4 supply; 3, 11 | Board power: the same fused 12 V supply as the cluster. SV2 pins 19/20 (12 V in) work too; use one or the other |
 | **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster. The fuel stand-in's GND wire goes here too, not to power ground |
 | **GPIO14** (SV1 pin 7) | | | Fuel stand-in driver input (`PIN_FUEL_SENDER`) |
 | **5 V** (SV2 pins 14/15) | | | Pull-up for the fuel stand-in's MOSFET gate |
@@ -76,8 +76,19 @@ board with the connectors at the bottom edge (USB-C on the left), each one
 reads +12 V, CAN-H, CAN-L, GND from left to right (from the Autosport Labs
 pinout figure). Autosport Labs warn that the pigtail colours may not match
 their docs, so check with a meter before connecting: about 120 Ω between
-CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin. Only
-CAN-H and CAN-L need connecting; leave +12 V open.
+CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin.
+
+**Powering the board from X1/X2:** Autosport Labs label the +12 V pin
+"+12V_AUX, 6–12 V power supply" and say their pigtail "can provide power +
+CAN data to the board", so the bench 12 V supply can go into +12 V and GND on
+X1 (or X2) in place of SV2 pins 19/20. Their wiki doesn't say how that pin
+connects inside the board, so check before the first power-up: with nothing
+powered, measure from the X1 +12 V pin to SV2 pin 19 or 20 (about 0 Ω, or a
+diode drop in diode mode, means they're the same input). Then power the board
+from X1 alone, with the cluster unplugged, and check the USB port appears and
+SV2 pins 14/15 read 5 V. One connector's +12 V is enough; if you wire both, use
+the same supply. The GND pin then also gives the cluster its common ground with
+the board. Keep the 12 V within 6–20 V and behind the inline fuse.
 
 **Termination:** both channels have 120 Ω on by default (pads TERM1/TERM2 on
 the back). Cut a pad only if `#stat` reports errors and you read about 40 Ω
@@ -205,7 +216,7 @@ the two setups:
 |---|---|---|
 | HS-CAN H / L | X1 CAN-H / CAN-L | First shield CAN-H / CAN-L |
 | MS-CAN H / L | X2 CAN-H / CAN-L | Second shield (or MCP2515 module) CAN-H / CAN-L |
-| Board GND | An SV2 GND pin (16–18) | A Mega GND pin |
+| Board GND | X1/X2 GND, or an SV2 GND pin (16–18) | A Mega GND pin |
 
 On the 16-pin plug, the "Position" column counts with the plug held as below,
 looking at the wire side with the latch up: the top row is 1–8 from right to
@@ -275,8 +286,8 @@ the wire side: the top row is 1–12 from left to right, and the bottom row is
 | `1I` | 5 | GY/R | HS-CAN H (500 kbit/s) | HS-CAN H |
 | `1K` | 6 | L/R | HS-CAN L (500 kbit/s) | HS-CAN L |
 
-On the ESP32-CAN-X2 the 12 V supply also feeds the board (SV2 pins 19/20). The
-Mega runs from USB.
+On the ESP32-CAN-X2 the 12 V supply also feeds the board, through +12 V/GND on
+X1 (or SV2 pins 19/20). The Mega runs from USB.
 
 Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
 the car has a 10 A and a 15 A fuse on these lines.
