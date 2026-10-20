@@ -241,8 +241,7 @@ plenty.
 The `F` field (0–100 %) sets the PWM duty. The duty is about 4% at empty
 (pulling 470 Ω down to 160 Ω) and fully on near full, and the gauge moves
 between the two. With the 10 Ω switched resistor the pair reaches about 10 Ω,
-below the 16.8 Ω that reads F. (An earlier build used 22 Ω, which stopped at
-about 21 Ω, one tick under F.) `#ohms N` sets the stand-in to N Ω directly.
+below the 16.8 Ω that reads F. `#ohms N` sets the stand-in to N Ω directly.
 
 ### Stand-in parts
 
@@ -275,8 +274,7 @@ the IRLB8721 on, so the needle may head toward F at power-up.
 
 With the cluster powered, measure the DC voltage across positions 2/1. On the
 bench cluster, with the gate input unconnected it read 6.6 V (470 Ω, needle
-on E). With the old straight-line calibration, 0/25/50/75/100 % read
-6.20/5.51/4.41/2.96/0.70 V, as calculated. The needle follows the slider
+on E). The needle follows the slider
 without an ignition cycle, but give it several seconds to settle. When
 checking a calibration point, power cycle the cluster and read the needle
 then: on the bench, `#ohms 20` looked like F right after other moves but read
@@ -286,10 +284,8 @@ one tick under F after a power cycle, while 16.8 Ω landed on F.
 
 On this cluster the turn signal and high beam lamps are **not** hard-wired
 inputs. The diagram shows them driven by the cluster's own microcomputer,
-like the warning lamps, and the pins earlier versions of this README gave for
-them are wrong: `1N` and `1P` are vacant (or the washer sensor), and `1K` is
-HS-CAN L. Don't put a transistor or 12 V on `1K`, because it will take down the
-CAN bus.
+like the warning lamps. `1K` is HS-CAN L: don't put a transistor or 12 V on
+it, because it will take down the CAN bus.
 
 The cluster gets those lamp states over the MS-CAN body bus on `1M`/`1O` (plug
 positions 7/8). On a bench-tested 2005 cluster the high beam lamp is body-bus

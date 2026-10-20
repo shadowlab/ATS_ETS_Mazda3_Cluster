@@ -92,9 +92,8 @@
 
 // Trip meter / odometer: 0x420 byte 1 counts up with distance and the cluster
 // adds it to the trip and odometer. ODO_MILES_PER_COUNT is the distance the
-// cluster adds per count, about 1/8085 mile (~0.2 m), from Lab's 60 mph runs:
-// at 1/7700, 20 minutes read 19.0 miles (4.8 % low), so it was trimmed;
-// confirmed: 5 minutes at 60 mph now reads 5.0.
+// cluster adds per count, about 1/8085 mile (~0.2 m), measured on a 2005
+// cluster: 5 minutes at 60 mph reads 5.0 miles.
 // 0 = off.
 #define ODO_MILES_PER_COUNT (1.0f / 8085.0f)
 
@@ -147,9 +146,7 @@
 // The two resistors in the stand-in. Anything at or above
 // FUEL_SENDER_EMPTY_OHMS works for the fixed one: the PWM pulls it down to the
 // empty reading. The switched one sets the lowest reading: 10 ohms reaches
-// about 10 ohms, past F. (The first board used 22 ohms, which stopped at about
-// 21 ohms, one tick under F.) On the reworked 2N7000 board 100 % lands on F,
-// checked after a power cycle.
+// about 10 ohms, past F, so 100 % lands on F (checked after a power cycle).
 #define FUEL_FIXED_OHMS    470.0f
 #define FUEL_SWITCHED_OHMS 10.0f
 // PWM resolution: 10-bit, so the small switched resistor still gets fine steps

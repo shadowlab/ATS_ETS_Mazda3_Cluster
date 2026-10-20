@@ -46,18 +46,16 @@ const uint8_t AIRBAG_B1_NO_BELT_CHIME = 0xFF;
 
 // ------------------------------------------------------- Calibration
 // 0x201 bytes 0-1: raw = rpm * RPM_CAN_FACTOR (big-endian).
-// Bench-tested on a 2005 cluster: 1:1 read about 4% high (5000 showed 5200),
-// so the raw value is trimmed to 0.96.
+// Bench-tested on a 2005 cluster: 0.96 makes the tach read true.
 const float RPM_CAN_FACTOR = 0.96f;
 // 0x201 bytes 4-5: raw = km/h * SPEED_CAN_FACTOR + SPEED_CAN_OFFSET.
-// Bench-tested on a 2005 cluster: km/h * 177.6 read 1.78x high (75 km/h showed
-// 83 mph), so the cluster takes km/h * 100.
+// Bench-tested on a 2005 cluster: the cluster takes km/h * 100.
 const float SPEED_CAN_FACTOR = 100.0f;
 const float SPEED_CAN_OFFSET = 0.0f;
 
 // ------------------------------------------------------------ Lamp bits
-// Bench-tested on a 2005 cluster: all in 0x420 byte 4. Bit 0 is kept set as
-// before (it doesn't drive the oil lamp, which is the wired switch on 1B).
+// Bench-tested on a 2005 cluster: all in 0x420 byte 4. Bit 0 is kept set
+// (it doesn't drive the oil lamp, which is the wired switch on 1B).
 const uint8_t ENGINE_B4_BASE         = 0x01;
 const uint8_t ENGINE_B4_CHARGE       = 0x02;  // battery/charge lamp
 const uint8_t ENGINE_B4_CHECK_ENGINE = 0x40;  // check-engine lamp, steady
