@@ -5,9 +5,9 @@
 //  Simulator telemetry. SimTools streams game data to this board over USB
 //  serial; the board turns it into the CAN frames the cluster expects.
 //
-//  Hardware: Arduino Mega 2560 + Seeed Studio CAN-BUS Shield (MCP2515), or an
-//            Autosport Labs ESP32-CAN-X2 (see BOARD_CAN_X2 in config.h).
-//  Library:  "CAN-BUS Shield" by Seeed Studio (Seeed_Arduino_CAN) v2.x.
+//  Hardware: Autosport Labs ESP32-CAN-X2 (HS-CAN on X1, MS-CAN on X2).
+//  Library:  "CAN-BUS Shield" by Seeed Studio (Seeed_Arduino_CAN) v2.x, for
+//            the board's MCP2515.
 //
 //  Serial fields (see README for the full table):
 //    R rpm   S speed   T coolant   A throttle   F fuel % (analog sender, optional)
@@ -23,12 +23,8 @@
 #include "mazda3_can.h"
 #include "telemetry_parser.h"
 
-#if BOARD_CAN_X2
 #include "twai_can.h"
 TwaiCan CAN(CAN_TX_PIN, CAN_RX_PIN);
-#else
-mcp2515_can CAN(CAN_CS_PIN);
-#endif
 #if MS_CAN_ENABLED
 mcp2515_can MSCAN(MS_CAN_CS_PIN);
 #endif
@@ -117,11 +113,7 @@ void sendMsFrame(uint16_t id, const uint8_t *data, uint8_t len = 8) {
 // and `#scan resume` carries on from there. `#scan h 0 00` fills the frames
 // with 0x00 instead: use it to find a lamp that is on until its module is
 // heard (watch for it going out), where all-0xFF may read as a fault.
-#if BODY_BUS_TEST
-#define MAIN_BUS_LABEL "MS (main shield) 0x"
-#else
 #define MAIN_BUS_LABEL "HS 0x"
-#endif
 const uint16_t SCAN_BLOCK = 16;
 const unsigned long SCAN_STEP_MS = 2000;
 bool scanning = false;
@@ -157,8 +149,7 @@ void sendScanFrames(unsigned long now) {
   for (uint16_t id = scanBase; id < scanBase + SCAN_BLOCK && id <= 0x7FF; id++) {
     if (scanMs) {
       sendMsFrame(id, ff);
-    } else if (BODY_BUS_TEST ||
-               (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO)) {
+    } else if (id != mazda3::ID_RPM_SPEED && id != mazda3::ID_ENGINE_INFO) {
       // Leave the needle/temperature frames alone so the gauges stay sane.
       sendFrame(id, ff);
     }
@@ -311,12 +302,10 @@ bool hasCustomFrame(uint16_t id, bool ms = false) {
   return false;
 }
 
-// Body-bus frames go to the second module, or to the main shield while it is
-// on the body bus for BODY_BUS_TEST. Without either they have nowhere to go.
+// Body-bus frames go to the MS-CAN channel (X2). Without it they have nowhere
+// to go.
 void sendBodyFrame(uint16_t id, const uint8_t *data) {
-#if BODY_BUS_TEST
-  if (!hasCustomFrame(id)) sendFrame(id, data);
-#elif MS_CAN_ENABLED
+#if MS_CAN_ENABLED
   if (!hasCustomFrame(id, true)) sendMsFrame(id, data);
 #else
   (void)id;
@@ -325,10 +314,8 @@ void sendBodyFrame(uint16_t id, const uint8_t *data) {
 }
 
 // Built-in frames step aside when a custom frame with the same ID is active,
-// so the cluster only ever sees one version of that ID. In the body bus test
-// they're off entirely, so they can't mask a scan or custom frame.
+// so the cluster only ever sees one version of that ID.
 void sendBuiltIn(uint16_t id, const uint8_t *data) {
-  if (BODY_BUS_TEST) return;
   if (!hasCustomFrame(id)) sendFrame(id, data);
 }
 
@@ -500,11 +487,7 @@ void printBusStats(Bus &bus, BusStats &s, const __FlashStringHelper *name) {
 }
 
 void printStats() {
-#if BODY_BUS_TEST
-  printBusStats(CAN, mainStats, F("MS-CAN (main shield, 125k)"));
-#else
   printBusStats(CAN, mainStats, F("HS-CAN (500k)"));
-#endif
 #if MS_CAN_ENABLED
   printBusStats(MSCAN, msStats, F("MS-CAN (125k)"));
 #endif
@@ -751,31 +734,20 @@ void setup() {
   cluster.fuelPct = 50;
   if (PIN_FUEL_SENDER >= 0) {
     pinMode(PIN_FUEL_SENDER, OUTPUT);
-#if BOARD_CAN_X2
     analogWriteResolution(PIN_FUEL_SENDER, FUEL_PWM_BITS);
-#endif
   }
   updateFuelSender();
 
-  while (CAN.begin(CAN_SPEED, CAN_CLOCK) != CAN_OK) {
-#if BOARD_CAN_X2
+  while (CAN.begin(CAN_SPEED) != CAN_OK) {
     DEBUG_PORT.println(F("CAN init failed - check CAN_TX_PIN/CAN_RX_PIN and CAN_SPEED"));
-#else
-    DEBUG_PORT.println(F("CAN init failed - check shield, CS pin and crystal setting"));
-#endif
     delay(500);
   }
   DEBUG_PORT.println(F("CAN ready - ATS Mazda 3 cluster bridge"));
-#if BODY_BUS_TEST
-  DEBUG_PORT.println(F("BODY BUS TEST: 125 kbit/s, gauge frames off - use #scan h"));
-#endif
 
 #if MS_CAN_ENABLED
   // Don't hang here if the module is missing: the gauges still work without it.
-#if BOARD_CAN_X2
   // The board's MCP2515 sits on GPIO12 (SCK), 13 (MISO) and 11 (MOSI).
   SPI.begin(12, 13, 11);
-#endif
   if (MSCAN.begin(MS_CAN_SPEED, MS_CAN_CLOCK) == CAN_OK) {
     DEBUG_PORT.println(F("MS-CAN ready"));
   } else {
