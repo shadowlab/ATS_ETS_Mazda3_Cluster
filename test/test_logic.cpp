@@ -165,7 +165,7 @@ static void testFuelSender() {
   CHECK(fuelSenderDuty(20, 470, 22) == 255);
   // Measured empty (160 ohms): (1/160 - 1/470) * 22 = 0.0907 -> 23/255.
   CHECK(fuelSenderDuty(160, 470, 22) == 23);
-  // Reworked board: 10 ohm switched resistor. Empty (175) is 9/255 and
+  // 10 ohm switched resistor. Empty (175) is 9/255 and
   // F (16.8 ohms) is 146/255.
   CHECK(fuelSenderDuty(470, 470, 10) == 0);
   CHECK(fuelSenderDuty(175, 470, 10) == 9);
