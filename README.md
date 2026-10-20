@@ -63,8 +63,9 @@ CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin. Only
 CAN-H and CAN-L need connecting; leave +12 V open.
 
 The board's pins are **3.3 V**. Never connect one straight to a cluster input,
-which works at 12 V. For the fuel stand-in, use a logic-level MOSFET such as
-an IRLB8721, which switches fully at 3.3 V (a 2N7000 is only partly on).
+which works at 12 V. The fuel stand-in gets a small 2N7000 stage that drives
+its MOSFET's gate from the board's 5 V output, because the bench IRLB8721
+barely conducted with 3.3 V on its gate (see [Fuel gauge](#fuel-gauge)).
 
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port, and
 SimTools, SimHub and the tools in `tools/` talk to it at 115200 baud.
@@ -208,13 +209,18 @@ needed):
 
 **2. Sender stand-in.** The circuit is tested on a real 2005 cluster (0 % on
 E, 25/50/75 % close to 1/4, 1/2 and 3/4, and with the 10 Ω switched resistor
-100 % lands on F after a power cycle). The ESP32-CAN-X2 version with an
-IRLB8721 below isn't tested yet. A fixed resistor
+100 % lands on F after a power cycle). On the ESP32-CAN-X2 the PWM is
+confirmed on GPIO14, but the 3.3 V gate drive below left the bench IRLB8721
+barely on, so the protoboard drawing adds a 2N7000 stage that drives the gate
+from 5 V. That rework isn't tested yet. A fixed resistor
 sets the empty reading, and a MOSFET on a PWM pin switches a small resistor
 in parallel to pull it toward full. A capacitor smooths the switching, so the
 cluster sees one steady resistance between the two.
 
 ![Fuel sender stand-in wiring](docs/fuel_gauge_wiring_esp32.svg)
+
+(This diagram shows the gate driven straight from GPIO14. The protoboard
+drawing below adds the 2N7000 driver stage from the table.)
 
 Laid out on a double-sided 2 × 8 cm protoboard (parts on top, solder bridges
 underneath):
@@ -226,9 +232,16 @@ underneath):
 | 470 Ω, 0.25 W | Position 2 (sense) and position 1 (return) |
 | 10 Ω, 0.25 W, in series with a logic-level N-MOSFET (IRLB8721) | Sense side → 10 Ω → drain; source → return side |
 | 470 µF, 25 V or more, electrolytic | Sense side (+) and return side (−) |
-| 100 Ω | X2 `GPIO14` (SV1 pin 7) → MOSFET gate |
-| 10 kΩ | Gate → source (keeps it off while the board boots) |
+| 100 Ω | X2 `GPIO14` (SV1 pin 7) → 2N7000 gate |
+| 10 kΩ | 2N7000 gate → ground (keeps it off while the board boots) |
+| 2N7000 | Source → ground; drain → IRLB8721 gate |
+| 4.7 kΩ | IRLB8721 gate → X2 5 V (SV2 pin 14 or 15) |
 | Wire | MOSFET source / return side → an X2 GND pin (SV2 16–18) |
+
+The 2N7000 inverts the signal (pin high = IRLB8721 off), so `FUEL_PWM_INVERT`
+is 1 on the X2 by default. Set it to 0 if your MOSFET's gate is driven
+straight from the pin. Until the firmware starts, the 4.7 kΩ holds the
+IRLB8721 on, so the needle may head toward F at power-up.
 
 **The GND wire must go to a GND pin on the board itself, not to power ground.**
 Even with the board and the 12 V supply sharing ground, the stand-in has

@@ -187,8 +187,9 @@ void updateFuelSender() {
                    ? fuelOhmsOverride
                    : mazda3::fuelSenderOhms(cluster.fuelPct, FUEL_SENDER_FULL_OHMS,
                                             FUEL_SENDER_HALF_OHMS, FUEL_SENDER_EMPTY_OHMS);
-  analogWrite(PIN_FUEL_SENDER, mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS,
-                                                      (1u << FUEL_PWM_BITS) - 1));
+  const uint16_t maxDuty = (1u << FUEL_PWM_BITS) - 1;
+  uint16_t duty = mazda3::fuelSenderDuty(ohms, FUEL_FIXED_OHMS, FUEL_SWITCHED_OHMS, maxDuty);
+  analogWrite(PIN_FUEL_SENDER, FUEL_PWM_INVERT ? maxDuty - duty : duty);
 }
 
 float scaled(char key, float scale, float offset) {

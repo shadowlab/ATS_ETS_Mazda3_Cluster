@@ -172,9 +172,9 @@
 // The stand-in's GND wire must go to a Mega GND pin, or the MOSFET can't
 // switch properly. Tested on a real 2005 cluster.
 // ESP32-CAN-X2: GPIO14 (SV1 pin 7), with the GND wire on an SV2 GND pin.
-// Its pins drive the gate to 3.3 V, not 5 V, which only partly turns on a
-// 2N7000; a logic-level MOSFET (e.g. IRLB8721) switches fully. Not yet
-// tested on this board.
+// Its pins only reach 3.3 V, so a 2N7000 stage drives the main MOSFET's gate
+// from the board's 5 V instead (see FUEL_PWM_INVERT and the X2 protoboard
+// drawing).
 #if BOARD_CAN_X2
 #define PIN_FUEL_SENDER 14
 #else
@@ -201,6 +201,15 @@
 #define FUEL_PWM_BITS 10
 #else
 #define FUEL_PWM_BITS 8
+#endif
+// 1 when a driver stage between the pin and the MOSFET inverts the signal:
+// pin high = MOSFET off. The X2 board's 2N7000 stage (gate pulled up to 5 V,
+// 2N7000 pulls it down) does, because a 3.3 V pin left the bench IRLB8721
+// barely on. Set 0 if the pin drives the MOSFET gate directly.
+#if BOARD_CAN_X2
+#define FUEL_PWM_INVERT 1
+#else
+#define FUEL_PWM_INVERT 0
 #endif
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
