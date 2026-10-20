@@ -54,9 +54,13 @@ channels, each with its own transceiver, one for each of the cluster's buses.
 | **GND** (SV2 pins 16–18) | | 3, 11 | Common ground with the cluster. The fuel stand-in's GND wire goes here too, not to power ground |
 | **GPIO14** (SV1 pin 7) | | | Fuel stand-in MOSFET gate (`PIN_FUEL_SENDER`) |
 
-The pin order on the 4-pin X1/X2 connectors (+12 V, CAN-H, CAN-L, GND) is
-printed on the board. Autosport Labs warn that the pigtail colours may not
-match their docs, so go by the board's labels, not the wire colours.
+The 4-pin X1/X2 connectors aren't labelled pin by pin. Looking down on the
+board with the connectors at the bottom edge (USB-C on the left), each one
+reads +12 V, CAN-H, CAN-L, GND from left to right (from the Autosport Labs
+pinout figure). Autosport Labs warn that the pigtail colours may not match
+their docs, so check with a meter before connecting: about 120 Ω between
+CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin. Only
+CAN-H and CAN-L need connecting; leave +12 V open.
 
 The board's pins are **3.3 V**. Never connect one straight to a cluster input,
 which works at 12 V. For the fuel stand-in, use a logic-level MOSFET such as
