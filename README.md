@@ -63,17 +63,12 @@ pinout figure). Autosport Labs warn that the pigtail colours may not match
 their docs, so check with a meter before connecting: about 120 Ω between
 CAN-H and CAN-L with the power off, and 0 Ω from GND to an SV2 GND pin.
 
-**Powering the board from X1/X2:** Autosport Labs label the +12 V pin
-"+12V_AUX, 6–12 V power supply" and say their pigtail "can provide power +
-CAN data to the board", so the bench 12 V supply can go into +12 V and GND on
-X1 (or X2) in place of SV2 pins 19/20. Their wiki doesn't say how that pin
-connects inside the board, so check before the first power-up: with nothing
-powered, measure from the X1 +12 V pin to SV2 pin 19 or 20 (about 0 Ω, or a
-diode drop in diode mode, means they're the same input). Then power the board
-from X1 alone, with the cluster unplugged, and check the USB port appears and
-SV2 pins 14/15 read 5 V. One connector's +12 V is enough; if you wire both, use
-the same supply. The GND pin then also gives the cluster its common ground with
-the board. Keep the 12 V within 6–20 V and behind the inline fuse.
+**Powering the board from X1/X2:** the bench 12 V supply goes into +12 V and
+GND on X1 or X2 (tested on the bench board), in place of SV2 pins 19/20.
+Autosport Labs label the pin "+12V_AUX, 6–12 V power supply". One connector's
++12 V is enough; if you wire both, use the same supply. The GND pin then also
+gives the cluster its common ground with the board. Keep the 12 V behind the
+inline fuse.
 
 **Termination:** both channels have 120 Ω on by default (pads TERM1/TERM2 on
 the back). Cut a pad only if `#stat` reports errors and you read about 40 Ω
