@@ -72,7 +72,7 @@ def main():
     args = ap.parse_args()
 
     port = serial.Serial(args.port, args.baud, timeout=0)
-    # Opening the port resets most Arduinos; wait for setup() and the boot sweep.
+    # Opening the port can reset the board; wait for setup() and the boot sweep.
     print("waiting for the board to boot...")
     time.sleep(4)
     read_back(port)

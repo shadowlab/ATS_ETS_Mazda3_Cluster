@@ -103,7 +103,7 @@ class TelemetryParser {
     return true;
   }
 
-  // Minimal float parser (avoids pulling in strtod/atof on AVR).
+  // Minimal float parser (avoids pulling in strtod/atof).
   static float parseFloat(const char *s) {
     bool neg = false;
     if (*s == '-') {

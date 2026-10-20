@@ -29,7 +29,7 @@
   "RtsEnable": false,
   "EditorExpanded": true,
   "Name": "Mazda 3 cluster",
-  "Description": "2005 Mazda 3 instrument cluster driven by the ATS_Mazda3_Cluster firmware (Mega or ESP32-CAN-X2). Pick your board's COM port.",
+  "Description": "2005 Mazda 3 instrument cluster driven by the ATS_Mazda3_Cluster firmware on an ESP32-CAN-X2. Pick your board's COM port.",
   "LastErrorDate": "0001-01-01T00:00:00",
   "LastErrorMessage": null,
   "IsFreezed": false,

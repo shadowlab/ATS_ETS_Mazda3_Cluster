@@ -4,16 +4,11 @@
 #pragma once
 
 // ---------------------------------------------------------------------- Board
-// Two boards are supported. The right one is picked from the board selected in
-// the Arduino IDE (Tools > Board), so there is nothing to change here:
-//  - Arduino Mega 2560 + one or two Seeed CAN-BUS shields (MCP2515).
-//  - Autosport Labs ESP32-CAN-X2 ("AutosportLabs ESP-CAN-X2" in the esp32
-//    board package). HS-CAN goes on CAN1, the ESP32's built-in controller
-//    (connector X1), and MS-CAN on CAN2, the board's MCP2515 (connector X2).
-#if defined(ARDUINO_ARCH_ESP32)
-#define BOARD_CAN_X2 1
-#else
-#define BOARD_CAN_X2 0
+// Autosport Labs ESP32-CAN-X2 ("AutosportLabs ESP-CAN-X2" in the esp32 board
+// package). HS-CAN goes on CAN1, the ESP32's built-in controller (connector
+// X1), and MS-CAN on CAN2, the board's MCP2515 (connector X2).
+#if !defined(ARDUINO_ARCH_ESP32)
+#error "Select Tools > Board > esp32 > AutosportLabs ESP-CAN-X2"
 #endif
 
 // ---------------------------------------------------------------- Serial link
@@ -29,57 +24,28 @@
 // turn it off once SimTools is driving the board - it doesn't need the chatter).
 #define DEBUG_STATUS 0
 
-// Where debug/status text goes. The Mega has three spare hardware UARTs, so
-// you can send debug text to Serial1 (TX1 = D18) through a USB-serial adapter
-// and keep the main USB port clean for SimTools. Leave as Serial to use the
-// same USB port. On the ESP32-CAN-X2, Serial is the USB-C port.
+// Where debug/status text goes. Serial is the board's USB-C port, the same
+// port SimTools uses.
 #define DEBUG_PORT Serial
 
-// ------------------------------------------------------------- CAN-BUS shield
-#if BOARD_CAN_X2
-// ESP32-CAN-X2: HS-CAN runs on the ESP32's built-in controller (CAN1,
-// connector X1), wired to GPIO7 (TX) and GPIO6 (RX) on the board.
+// ------------------------------------------------------------- HS-CAN (X1)
+// HS-CAN runs on the ESP32's built-in controller (CAN1, connector X1), wired
+// to GPIO7 (TX) and GPIO6 (RX) on the board.
 #define CAN_TX_PIN 7
 #define CAN_RX_PIN 6
-#else
-// Arduino Mega 2560 (ATmega2560).
-//
-// Seeed CAN-BUS Shield v1.1+ / v2.0 use D9 for chip-select. The very first
-// v1.0 boards used D10.
-//
-// On the Mega the hardware SPI bus is D50 (MISO), D51 (MOSI), D52 (SCK) - NOT
-// D11-D13 like an Uno. Shield v2.0 picks SPI up from the 6-pin ICSP header, so
-// it works on the Mega as-is. Shield v1.x routes SPI to D11-D13: on a Mega you
-// must jumper D11->D51, D12->D50, D13->D52 (and leave D11-13 unused).
-#define CAN_CS_PIN 9
-#endif
-
-// The shield's MCP2515 runs from a 16 MHz crystal. Some cheap clone modules
-// use 8 MHz - change to MCP_8MHz if yours does. (Not used by the ESP32's
-// built-in controller.)
-#define CAN_CLOCK MCP_16MHz
 
 // The 2004-2009 (BK) Mazda 3 cluster sits on the 500 kbit/s high-speed bus.
 #define CAN_SPEED CAN_500KBPS
 
-// ------------------------------------------ Optional second CAN module (MS-CAN)
+// ------------------------------------------------------------- MS-CAN (X2)
 // The cluster also sits on the 125 kbit/s body bus (MS-CAN, cluster pins 1M/1O,
-// plug positions 7/8). The turn signal and high beam lamps are most likely
-// driven from there. To reach it, add a second MCP2515: either a second Seeed
-// CAN-BUS shield stacked on the first with its CS moved to D10, or a loose
-// MCP2515 module wired to the SPI pins (see README). Its CAN-H/CAN-L go to
-// positions 7/8.
-// With it fitted, `#m...` serial commands send custom frames on this bus and
-// `#scan m` searches it (see README). On by default: without it the SRS and
-// ABS lamps stay lit and BRAKE won't clear. Set 0 if no second module is fitted.
-// The ESP32-CAN-X2 has this module built in (CAN2, connector X2).
+// plug positions 7/8), which drives the turn arrows, high beam and SRS lamp.
+// It runs on the board's MCP2515 (CAN2, connector X2). `#m...` serial commands
+// send custom frames on this bus and `#scan m` searches it (see README). On by
+// default: without it the SRS and ABS lamps stay lit and BRAKE won't clear.
 #define MS_CAN_ENABLED 1
-// Second Seeed shield: D10. Loose module: any free pin, e.g. D53.
-// ESP32-CAN-X2: GPIO10 (its MCP2515 is wired there), so 10 suits both boards.
+// The board's MCP2515 has its chip select on GPIO10 and a 16 MHz crystal.
 #define MS_CAN_CS_PIN  10
-// Seeed shields and the ESP32-CAN-X2 have a 16 MHz crystal. Most blue MCP2515
-// modules have 8 MHz (the can on the board reads "8.000"): use MCP_8MHz for
-// those.
 #define MS_CAN_CLOCK   MCP_16MHz
 #define MS_CAN_SPEED   CAN_125KBPS
 
@@ -146,10 +112,7 @@
 // The parking brake lamp is sent over CAN (0x212). PIN_PARK_BRAKE is only for
 // clusters where it turns out to be hard-wired instead.
 //
-// Avoid D2 (shield interrupt), D4 (shield SD card CS), D9/D10 (CAN CS),
-// D50-D53 (Mega SPI) and D0/D1 (USB serial to SimTools). The Mega has plenty
-// of other free pins (D22-D49).
-// ESP32-CAN-X2: the pins are 3.3 V. Avoid GPIO2 (LED), 3 (MCP2515 interrupt),
+// The pins are 3.3 V. Avoid GPIO2 (LED), 3 (MCP2515 interrupt),
 // 6/7 (CAN1), 10-13 (MCP2515 SPI), 19/20 (USB), 43/44 (X4 serial) and the
 // boot pins 0, 45 and 46. GPIO 21, 47 and 48 (SV1 pins 8-10) are free.
 #define PIN_LEFT_TURN   -1
@@ -159,7 +122,7 @@
 // The oil pressure lamp isn't on CAN: the cluster reads the oil pressure
 // switch on 16-pin position 9 (1B), grounded = lamp on. To drive it from the
 // game, wire an NPN transistor (or relay) from position 9 to ground and give
-// its base pin here (through ~1 kOhm), e.g. 22.
+// its base pin here (through ~1 kOhm), e.g. 21.
 #define PIN_OIL_LAMP    -1
 
 // ------------------------------------------------------------ Fuel gauge
@@ -167,19 +130,13 @@
 // not CAN. To drive it from the game, fit the sender stand-in from the README
 // (a FUEL_FIXED_OHMS resistor across the pins, plus a FUEL_SWITCHED_OHMS
 // resistor switched by a logic-level MOSFET, plus a capacitor) and give the
-// MOSFET's gate pin here. It must be a PWM pin; D5 is free. -1 = off.
-// Defaults to D5, as on the tested board.
-// The stand-in's GND wire must go to a Mega GND pin, or the MOSFET can't
-// switch properly. Tested on a real 2005 cluster.
-// ESP32-CAN-X2: GPIO14 (SV1 pin 7), with the GND wire on an SV2 GND pin.
-// Its pins only reach 3.3 V, so a 2N7000 stage drives the main MOSFET's gate
-// from the board's 5 V instead (see FUEL_PWM_INVERT and the X2 protoboard
-// drawing).
-#if BOARD_CAN_X2
+// driver input pin here. -1 = off. Defaults to GPIO14 (SV1 pin 7), as on the
+// tested board. The stand-in's GND wire must go to an SV2 GND pin, not power
+// ground, or the MOSFET can't switch properly. The board's pins only reach
+// 3.3 V, so a 2N7000 stage drives the main MOSFET's gate from the board's 5 V
+// (see FUEL_PWM_INVERT and the protoboard drawing). Tested on a real 2005
+// cluster.
 #define PIN_FUEL_SENDER 14
-#else
-#define PIN_FUEL_SENDER 5
-#endif
 // Sender resistance the needle shows as full, half and empty. Measured on a
 // 2005 cluster with fixed resistors: about 160-175 ohms sits on E, 54 on half,
 // 20 one tick under F, 16.8 right on F, and 10 goes past F. (`#ohms <n>` holds
@@ -195,22 +152,14 @@
 // checked after a power cycle.
 #define FUEL_FIXED_OHMS    470.0f
 #define FUEL_SWITCHED_OHMS 10.0f
-// PWM resolution. The Mega's analogWrite is 8-bit. The ESP32 runs 10-bit, so
-// the smaller switched resistor still gets fine steps near empty.
-#if BOARD_CAN_X2
+// PWM resolution: 10-bit, so the small switched resistor still gets fine steps
+// near empty.
 #define FUEL_PWM_BITS 10
-#else
-#define FUEL_PWM_BITS 8
-#endif
 // 1 when a driver stage between the pin and the MOSFET inverts the signal:
-// pin high = MOSFET off. The X2 board's 2N7000 stage (gate pulled up to 5 V,
-// 2N7000 pulls it down) does, because a 3.3 V pin left the bench IRLB8721
-// barely on. Set 0 if the pin drives the MOSFET gate directly.
-#if BOARD_CAN_X2
+// pin high = MOSFET off. The 2N7000 stage (gate pulled up to 5 V, 2N7000 pulls
+// it down) does, because a 3.3 V pin left the bench IRLB8721 barely on. Set 0
+// if the pin drives the MOSFET gate directly.
 #define FUEL_PWM_INVERT 1
-#else
-#define FUEL_PWM_INVERT 0
-#endif
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0
@@ -220,19 +169,3 @@
 // long (333 ms is about 1.5 flashes a second). If your game output already
 // blinks, the lamp follows its timing anyway. 0 = show the input as-is.
 #define TURN_BLINK_HALF_MS 333
-
-// --------------------------------------------- Body bus test (single shield)
-// Mega with one shield only; the ESP32-CAN-X2 always has both buses.
-// Set to 1 to try the body bus (MS-CAN) with the one shield you already have:
-// move the shield's CAN-H/CAN-L wires from cluster positions 5/6 to 7/8. The
-// shield then runs at 125 kbit/s, the boot sweep and all the gauge frames are
-// switched off (the needles won't move), and `#scan h` and `#...` custom frames
-// go out on the body bus. Set back to 0 and move the wires back afterwards.
-#define BODY_BUS_TEST 0
-
-#if BODY_BUS_TEST
-#undef CAN_SPEED
-#define CAN_SPEED CAN_125KBPS
-#undef SWEEP_ON_BOOT
-#define SWEEP_ON_BOOT 0
-#endif

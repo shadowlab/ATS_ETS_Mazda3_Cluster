@@ -2,7 +2,7 @@
 <!--
   Mazda 3 cluster tester: drive the cluster bridge from a browser, no Python.
   Open this file in Chrome or Edge (double-click it), press Connect and pick
-  the Mega's COM port. Uses the Web Serial API, which Firefox and Safari lack.
+  the ESP32-CAN-X2's COM port. Uses the Web Serial API, which Firefox and Safari lack.
   Close the Arduino Serial Monitor and SimHub/SimTools first.
 -->
 <html lang="en">
@@ -265,15 +265,13 @@ async function connect() {
   stats.rxBytes = stats.packets = stats.skipped = 0;
   heard = false;
   readLoop(port);
-  // Opening the port restarts the Mega. Its bootloader listens on the port for
-  // the first second or two, and data sent then can stop it starting the
-  // sketch, so wait for the sketch's "CAN ready" (or a few seconds) before
-  // streaming. Same idea as the 4 s wait in cluster_test.py.
+  // Opening the port can restart the board, so wait for the sketch's
+  // "CAN ready" (or a few seconds) before streaming. Same idea as the 4 s wait in cluster_test.py.
   bootTimer = setTimeout(startStreaming, BOOT_WAIT_MS);
   quietTimer = setTimeout(() => {
     if (port && !heard) {
       setStatus("connected, but no reply from the board yet", true);
-      log("No output from the board yet. Check it's the Mega's port, and that the sketch is uploaded. Try Bus health.\n");
+      log("No output from the board yet. Check it's the board's port, and that the sketch is uploaded. Try Bus health.\n");
     }
   }, 6000);
 }
