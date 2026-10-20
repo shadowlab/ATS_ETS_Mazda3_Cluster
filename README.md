@@ -388,9 +388,6 @@ the board's 5 V instead.
 
 ![Fuel sender stand-in wiring, ESP32-CAN-X2](docs/fuel_gauge_wiring_esp32.svg)
 
-(This diagram shows the gate driven straight from GPIO14. The protoboard
-drawing below adds the 2N7000 driver stage from the table.)
-
 ![Fuel sender stand-in on a protoboard, ESP32-CAN-X2](docs/fuel_gauge_protoboard_esp32.svg)
 
 | Part | Goes between |
