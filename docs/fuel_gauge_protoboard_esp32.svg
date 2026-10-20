@@ -946,7 +946,7 @@
 <text x="40" y="696" font-size="13">• 4. Fit a 4.7 kΩ from E06 to I06 (pulls the IRLB8721 gate up to 5 V). Bridges D06–E06 and I06–I05. New wire: D06 → X2 5 V (SV2 pin 14 or 15).</text>
 <text x="40" y="716" font-size="13">• How it works: pin high → 2N7000 on → IRLB8721 gate pulled to 0 V (off). Pin low → 2N7000 off → 4.7 kΩ lifts the gate to 5 V (on).</text>
 <text x="40" y="736" font-size="13">• The firmware inverts the PWM to match (FUEL_PWM_INVERT 1, the X2 default). At power-up, before the firmware runs, the needle may head toward F.</text>
-<text x="40" y="756" font-size="13">• Checks with the power off: G04 to the ground rail ≈ 10 kΩ, G04 to I04 open (not 0 Ω), H02 to K05 0 Ω, D06 to K05 ≈ 4.7 kΩ.</text>
+<text x="40" y="756" font-size="13">• Checks with the power off: G04 to the ground rail ≈ 10 kΩ, I02 to K02 not 0 Ω (the I column must not touch ground), H02 to K05 0 Ω, D06 to K05 ≈ 4.7 kΩ.</text>
 <text x="40" y="776" font-size="13">• Holes: columns A–Z then A, B (left to right, component side); rows 01–06 from the bottom. Rails: row 06 from P = SENSE, row 01 from B = GROUND.</text>
 <text x="40" y="796" font-size="13">• IRLB8721 legs K05/K04/K03 = G/D/S, printed face toward column J, metal tab (= drain) toward column L. Not yet tested on hardware.</text>
 </svg>
