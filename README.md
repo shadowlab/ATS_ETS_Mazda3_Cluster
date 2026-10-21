@@ -111,6 +111,8 @@ the wire colours match a 2005 harness plug in this orientation.
  bottom row: 16  15  14  13  12  11  10   9      (1P 1N 1L 1J 1H 1F 1D 1B)
 ```
 
+![16-pin cluster plug, wire side, with each used position labelled](docs/cluster_plug_16pin.png)
+
 **16-pin plug, every position:**
 
 | Position | Factory pin | Wire | Signal | Bench |
@@ -145,6 +147,8 @@ the wire side: the top row is 1–12 from left to right, and the bottom row is
  top row:     1   2   3   4   5   6   7   8   9  10  11  12   (2W 2U 2S 2Q 2O 2M 2K 2I 2G 2E 2C 2A)
  bottom row: 13  14  15  16  17  18  19  20  21  22  23  24   (2X 2V 2T 2R 2P 2N 2L 2J 2H 2F 2D 2B)
 ```
+
+![24-pin cluster plug, wire side, with each used position labelled](docs/cluster_plug_24pin.png)
 
 | Position | Factory pin | Wire | Signal | Bench |
 |---|---|---|---|---|
