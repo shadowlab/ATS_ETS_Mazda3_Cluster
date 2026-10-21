@@ -81,6 +81,9 @@ barely conducted with 3.3 V on its gate (see
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port, and
 SimHub and the tester page in `tools/` talk to it at 115200 baud.
 
+The board's data LED (GPIO2) flickers while CAN frames go out to or come in
+from the cluster on either bus, and stays dark when nothing gets through.
+
 ### Board connections
 
 Where each wire goes on the ESP32-CAN-X2: the X1/X2 CAN connectors (with
@@ -481,6 +484,7 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 | Symptom | Check |
 |---|---|
 | `CAN init failed` repeats in the Serial Monitor | The wrong board selected in *Tools → Board* (it must be AutosportLabs ESP-CAN-X2), or `CAN_TX_PIN`/`CAN_RX_PIN` changed from 7/6 |
+| Data LED (GPIO2) stays dark | No frames are getting through on either bus: check the CAN wiring, cluster power and that the sketch is uploaded. It flickers while traffic flows (`PIN_CAN_LED`) |
 | Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the board and the 12 V supply |
 | Needles work with the tester page but not in game | Wrong COM port or baud in SimHub, two programs holding the port, or the output string doesn't end with `;` |

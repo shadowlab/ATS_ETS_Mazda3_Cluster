@@ -84,8 +84,26 @@ BusStats mainStats = {};
 BusStats msStats = {};
 #endif
 
+// Set by any frame sent or received on either bus; updateCanLed() turns it
+// into a flicker on the data LED.
+bool canActivity = false;
+
+void updateCanLed(unsigned long now) {
+  if (PIN_CAN_LED < 0) return;
+  static unsigned long lastToggleMs = 0;
+  static bool lit = false;
+  if (now - lastToggleMs < CAN_LED_FLICKER_MS) return;
+  lastToggleMs = now;
+  lit = canActivity ? !lit : false;
+  canActivity = false;
+  digitalWrite(PIN_CAN_LED, lit ? HIGH : LOW);
+}
+
 void recordSend(BusStats &s, byte rc) {
-  if (rc == CAN_OK) s.sent++;
+  if (rc == CAN_OK) {
+    s.sent++;
+    canActivity = true;
+  }
   else if (rc == CAN_SENDMSGTIMEOUT) s.slow++;
   else s.stuck++;
 }
@@ -419,6 +437,7 @@ void pollReceive(Bus &bus, BusStats &s, const __FlashStringHelper *label) {
     byte buf[8];
     bus.readMsgBufID(&id, &len, buf);
     s.rxFrames++;
+    canActivity = true;
     if (len > 8) len = 8;
     int8_t slot = -1;
     for (uint8_t i = 0; i < s.rxIdCount; i++) {
@@ -453,6 +472,7 @@ void pollAllReceive() {
 #if MS_CAN_ENABLED
   pollReceive(MSCAN, msStats, F("MS 0x"));
 #endif
+  updateCanLed(millis());
 }
 
 // `#stat`: one bus's counts and a plain verdict on the wiring.
@@ -728,6 +748,10 @@ void setup() {
   initIndicator(PIN_HIGH_BEAM);
   initIndicator(PIN_PARK_BRAKE);
   initIndicator(PIN_OIL_LAMP);
+  if (PIN_CAN_LED >= 0) {
+    pinMode(PIN_CAN_LED, OUTPUT);
+    digitalWrite(PIN_CAN_LED, LOW);
+  }
 
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;
