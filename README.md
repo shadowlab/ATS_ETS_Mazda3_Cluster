@@ -83,6 +83,14 @@ barely conducted with 3.3 V on its gate (see
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port, and
 SimTools, SimHub and the tools in `tools/` talk to it at 115200 baud.
 
+### Board connections
+
+Where each wire goes on the ESP32-CAN-X2: the X1/X2 CAN connectors (with
+board power), the fuel stand-in's GPIO14, 5 V and GND wires, and the
+alternative 12 V input on SV2.
+
+![ESP32-CAN-X2 connections: X1/X2 pin order, fuel stand-in wires and power](docs/esp32_can_x2_pinout.png)
+
 ## Wiring the cluster
 
 The pin numbers below come from the factory wiring diagram for the 2005
