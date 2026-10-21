@@ -3,7 +3,7 @@
   Mazda 3 cluster tester: drive the cluster bridge from a browser, nothing to install.
   Open this file in Chrome or Edge (double-click it), press Connect and pick
   the ESP32-CAN-X2's COM port. Uses the Web Serial API, which Firefox and Safari lack.
-  Close the Arduino Serial Monitor and SimHub/SimTools first.
+  Close the Arduino Serial Monitor and SimHub first.
 -->
 <html lang="en">
 <head>
@@ -123,7 +123,7 @@
 </main>
 
 <script>
-// Same text protocol as SimHub/SimTools.
+// Same text protocol as SimHub.
 const GAUGES = [
   { key: "R", label: "RPM", min: 0, max: 8000, value: 800, digits: 0 },
   { key: "S", label: "Speed (mph)", min: 0, max: 140, value: 0, digits: 1 },

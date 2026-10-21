@@ -2,7 +2,7 @@
 //  ATS_Mazda3_Cluster
 //
 //  Drives a real 2004-2009 (BK) Mazda 3 instrument cluster from American Truck
-//  Simulator telemetry. SimTools streams game data to this board over USB
+//  Simulator telemetry. SimHub streams game data to this board over USB
 //  serial; the board turns it into the CAN frames the cluster expects.
 //
 //  Hardware: Autosport Labs ESP32-CAN-X2 (HS-CAN on X1, MS-CAN on X2).
@@ -193,7 +193,7 @@ void applyTelemetry() {
   cluster.speedKmh = scaled('S', SPEED_SCALE, SPEED_OFFSET);
   cluster.coolantC = scaled('T', COOLANT_SCALE, COOLANT_OFFSET);
   cluster.throttlePct = scaled('A', THROTTLE_SCALE, THROTTLE_OFFSET);
-  // Only once SimTools has sent fuel; otherwise keep the boot default rather
+  // Only once SimHub has sent fuel; otherwise keep the boot default rather
   // than dropping the gauge to empty.
   if (parser.seen('F')) cluster.fuelPct = scaled('F', FUEL_SCALE, FUEL_OFFSET);
   cluster.checkEngine = parser.value('E') >= 0.5f;

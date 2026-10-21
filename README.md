@@ -2,12 +2,12 @@
 Bridging physical and simulation - Connect a physical Mazda 3 instrument cluster and obtain readings from ATS or ETS on the real gauges!
 
 ```
-American Truck      SimTools          Autosport Labs      HS-CAN 500k   2005 Mazda 3
-Simulator   ──────► or SimHub   ────► ESP32-CAN-X2  ────► MS-CAN 125k ─► instrument
+American Truck                        Autosport Labs      HS-CAN 500k   2005 Mazda 3
+Simulator   ──────► SimHub      ────► ESP32-CAN-X2  ────► MS-CAN 125k ─► instrument
 (telemetry)         (USB serial)                                       cluster
 ```
 
-SimTools or SimHub reads ATS telemetry and streams it as text over USB serial. The
+SimHub reads ATS telemetry and streams it as text over USB serial. The
 ESP32-CAN-X2 parses it and continuously sends the CAN frames the cluster would normally get
 from the engine computer (PCM) and ABS unit, so the tach, speedo, temperature
 gauge, fuel gauge and warning lamps follow the game.
@@ -19,7 +19,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/` | Arduino sketch: open `ATS_Mazda3_Cluster.ino` in the Arduino IDE |
 | `firmware/ATS_Mazda3_Cluster/config.h` | Every setting you're likely to change: pins, scaling, timeouts |
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
-| `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
+| `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimHub sends |
 | `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller (HS-CAN on X1) |
 | `tools/cluster_tester.html` | Bench tester: drive the cluster from Chrome or Edge without the game, nothing to install |
 | `tools/simhub/Mazda3_Cluster.shsds` | SimHub Custom serial device profile: import it instead of setting SimHub up by hand |
@@ -79,7 +79,7 @@ barely conducted with 3.3 V on its gate (see
 [Stand-in parts](#stand-in-parts)).
 
 The USB-C port is the ESP32-S3's own USB serial. It shows up as a COM port, and
-SimTools, SimHub and the tools in `tools/` talk to it at 115200 baud.
+SimHub and the tester page in `tools/` talk to it at 115200 baud.
 
 ### Board connections
 
@@ -327,7 +327,7 @@ one program can hold the port at a time.
 
 ## SimHub setup
 
-The firmware doesn't care which program sends the text, so SimHub works too.
+SimHub sends the game telemetry to the board as a Custom serial device.
 
 **Quick setup: import the ready-made profile.** `tools/simhub/Mazda3_Cluster.shsds`
 is a Custom serial device profile with everything below already filled in.
@@ -414,14 +414,11 @@ before it reaches the cluster:
   `SPEED_SCALE 1.609344` converts it to the km/h the cluster takes on CAN (a
   US cluster converts back to mph on the dial). If your speed arrives in
   km/h, set `SPEED_SCALE 1.0`. If it arrives in m/s, use `3.6`.
-- **Bit-range output**: if SimTools sends values scaled to a bit range
-  (for example 8-bit, 0–255) rather than real units, set the scale to
-  `real_max / 255`.
 - **Truck RPM on a car tach**: `RPM_DISPLAY_MULTIPLIER` defaults to `1.0`, so
   the tach shows the true reading. A truck redlines around 2,500 rpm, which
   barely moves the cluster's 8,000 rpm needle. Set it to `3.0` to stretch the truck's
   range across the dial.
-- **Fuel in litres or gallons**: the cluster wants a percentage. If SimTools
+- **Fuel in litres or gallons**: the cluster wants a percentage. If SimHub
   gives the amount in the tank, set `FUEL_SCALE` to `100 / tank capacity`.
 
 ## What's mapped so far
@@ -486,7 +483,7 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 | `CAN init failed` repeats in the Serial Monitor | The wrong board selected in *Tools → Board* (it must be AutosportLabs ESP-CAN-X2), or `CAN_TX_PIN`/`CAN_RX_PIN` changed from 7/6 |
 | Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the board and the 12 V supply |
-| Needles work with the tester page but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
+| Needles work with the tester page but not in game | Wrong COM port or baud in SimHub, two programs holding the port, or the output string doesn't end with `;` |
 | Speed reads about 1.6× too high or too low | `SPEED_SCALE` doesn't match your units: `1.609344` for mph (default), `1.0` for km/h, `3.6` for m/s |
 | Tach barely moves | Raise `RPM_DISPLAY_MULTIPLIER` |
 | Tach or speedo reads a fixed ratio off | Adjust `RPM_CAN_FACTOR` or `SPEED_CAN_FACTOR` in `mazda3_can.h` |

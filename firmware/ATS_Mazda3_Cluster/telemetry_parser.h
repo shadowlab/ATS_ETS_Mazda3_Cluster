@@ -1,5 +1,5 @@
 // =============================================================================
-//  telemetry_parser.h - parses the text stream SimTools sends over serial.
+//  telemetry_parser.h - parses the text stream SimHub sends over serial.
 //
 //  Format: a sequence of fields, each an upper-case letter followed by a
 //  number, e.g.

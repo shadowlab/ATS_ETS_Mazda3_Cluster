@@ -12,8 +12,7 @@
 #endif
 
 // ---------------------------------------------------------------- Serial link
-// Must match the baud rate set on the SimTools interface (Game Engine ->
-// Interface Settings). 115200 is the fastest SimTools offers and is plenty.
+// Must match the baud rate in the SimHub serial device profile (115200).
 #define SERIAL_BAUD 115200
 
 // If no telemetry arrives for this long the game is treated as paused/closed
@@ -21,11 +20,11 @@
 #define TELEMETRY_TIMEOUT_MS 1000
 
 // Print a status line every second (handy in the Arduino Serial Monitor, but
-// turn it off once SimTools is driving the board - it doesn't need the chatter).
+// turn it off once SimHub is driving the board - it doesn't need the chatter).
 #define DEBUG_STATUS 0
 
 // Where debug/status text goes. Serial is the board's USB-C port, the same
-// port SimTools uses.
+// port SimHub uses.
 #define DEBUG_PORT Serial
 
 // ------------------------------------------------------------- HS-CAN (X1)
@@ -56,10 +55,9 @@
 #define SWEEP_DURATION_MS 1500  // each direction
 
 // ---------------------------------------------------------- Input scaling
-// physical = raw * SCALE + OFFSET, applied to every value SimTools sends.
+// physical = raw * SCALE + OFFSET, applied to every value SimHub sends.
 //
-// Defaults assume SimTools sends real units (RPM, mph, deg C, %). If your
-// output is set to a bit range instead (e.g. 8-bit = 0..255), rescale here.
+// Defaults assume SimHub sends real units (RPM, mph, deg C, %).
 // Example: 8-bit RPM output covering 0..3000 rpm -> RPM_SCALE (3000.0 / 255.0)
 //
 // Speed is expected in mph: SPEED_SCALE converts it to the km/h the cluster
@@ -72,7 +70,7 @@
 #define COOLANT_OFFSET  0.0f
 #define THROTTLE_SCALE  1.0f
 #define THROTTLE_OFFSET 0.0f
-// Fuel is expected as a percentage (0 = empty, 100 = full). If SimTools gives
+// Fuel is expected as a percentage (0 = empty, 100 = full). If SimHub gives
 // litres or gallons instead, scale by 100 / tank capacity.
 #define FUEL_SCALE      1.0f
 #define FUEL_OFFSET     0.0f
