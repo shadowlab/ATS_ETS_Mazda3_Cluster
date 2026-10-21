@@ -21,9 +21,7 @@ gauge, fuel gauge and warning lamps follow the game.
 | `firmware/ATS_Mazda3_Cluster/mazda3_can.h` | CAN IDs and byte layouts for the cluster |
 | `firmware/ATS_Mazda3_Cluster/telemetry_parser.h` | Parser for the serial text SimTools sends |
 | `firmware/ATS_Mazda3_Cluster/twai_can.h` | The ESP32's built-in CAN controller (HS-CAN on X1) |
-| `tools/cluster_test.py` | Drive the cluster from a PC without the game (bench testing) |
-| `tools/cluster_tester.html` | The bench tester as a web page: open it in Chrome or Edge, nothing to install |
-| `tools/cluster_gui.py` | The same in a window: sliders, lamp switches, gear, `#` commands and the board's output |
+| `tools/cluster_tester.html` | Bench tester: drive the cluster from Chrome or Edge without the game, nothing to install |
 | `tools/simhub/Mazda3_Cluster.shsds` | SimHub Custom serial device profile: import it instead of setting SimHub up by hand |
 | `test/test_logic.cpp` | Unit tests for the frame encoding and parser (run on a PC) |
 
@@ -178,15 +176,6 @@ The 12 V supply also feeds the board, through +12 V/GND on X1 (or SV2 pins
 Fuse the 12 V feed (a 2–3 A inline fuse is plenty for a bench cluster), since
 the car has a 10 A and a 15 A fuse on these lines.
 
-**Optional pins on the 16-pin plug:**
-
-| Cluster pin | Wire | Signal | Notes |
-|---|---|---|---|
-| `1L` (position 14) | O | Illumination (TNS, +12 V when the headlights are on) | 12 V through a switch if you want the backlight and gauge lighting |
-| `1M`, `1O` (positions 7, 8) | GY/V, L/W | MS-CAN H, L (body bus, 125 kbit/s) | To X2 CAN-H/CAN-L (`MS_CAN_ENABLED 1`). Drives the high beam, turn arrows, SRS lamp and lets BRAKE clear. See [Reaching the body bus](#reaching-the-body-bus-ms-can) |
-| `1B` (position 9) | B/Y | Oil pressure switch | Grounding it lights the red oil lamp (bench-confirmed). ATS has no oil-pressure warning to drive it, so `PIN_OIL_LAMP` is off by default. Leave it open on the bench (open = pressure OK) |
-| `1P` (position 16) | B/G | Washer fluid-level sensor (only on cars with one) | Leave open |
-
 All other pins are vacant. In the car, the brake fluid-level and parking brake
 switches go to the junction box, not the cluster, which is why the parking
 brake lamp comes over CAN (`0x212`).
@@ -309,60 +298,8 @@ cluster holds an arrow solid while its bit is set, so the firmware flashes it
 from the `L`/`Y` fields (`TURN_BLINK_HALF_MS`, 333 ms by default). If your game
 output already blinks, the lamp follows that timing. There is no separate
 hazard bit: hazards are `L` and `Y` on together, and both arrows share one
-flasher so they stay in step (`cluster_test.py --hazard` to try it). Nothing in `0x433` on
+flasher so they stay in step. Nothing in `0x433` on
 HS-CAN lights any of them.
-
-### Reaching the body bus (MS-CAN)
-
-**Check the wiring before scanning.** No body-bus ID is published for this
-cluster, so the check doesn't rely on one. CAN makes the receiving node
-acknowledge every frame, whatever its ID. With no acknowledgement the
-controller keeps retrying and flags an error. So send any harmless frame on
-the body bus, then ask for the bus health:
-
-```
-#m7FF 00
-#stat
-```
-
-`OK: the cluster is acknowledging at this bitrate` means the wires are on the
-body bus and the cluster is talking at 125 kbit/s. `NOT acknowledged` means
-nothing answered: check H/L aren't swapped, the positions, and ignition 12 V
-on position 4. If the cluster sends frames of its own, they print as
-`heard MS 0x...` when first seen, which proves the link too. Remove the test
-frame with `#m7FF` afterwards. The same check works on the gauge bus with
-`#7FF 00` (`HS-CAN (500k)`).
-
-At boot the Serial Monitor prints `MS-CAN ready`, or `MS-CAN init failed` if
-the X2 channel isn't answering. The gauges keep working either way.
-
-### Finding the lamp frames
-
-1. Type `#scan m` in the Serial Monitor (or `#scan h` to search the main bus).
-   The board sends all-`0xFF` frames on 16 IDs at a time, two seconds per block,
-   and prints each block, such as `scan MS 0x430-0x43F`. It takes about four
-   minutes to cover every ID.
-2. Note the block that lights a turn arrow or the high beam, then type `#scan`
-   to stop. It prints where it stopped, for example
-   `scan stopped at HS 0x4D0`. Type `#scan resume` to carry on from that
-   block, or `#scan h 4D0` (or `#scan m 4D0`) to start from any ID.
-3. Narrow it down with custom frames, for example `#m433 FF FF FF FF FF FF FF FF`
-   for one ID, then one byte at a time, then one bit.
-4. Add the confirmed ID, byte and bit to `mazda3_can.h`.
-
-The GPIO lamp outputs are still in the firmware, off by default
-(`PIN_LEFT_TURN`, `PIN_RIGHT_TURN`, `PIN_HIGH_BEAM` are `-1` in `config.h`), for
-clusters that do turn out to have hard-wired lamp inputs. If you use them,
-never connect a board pin straight to the cluster, because these inputs
-work at 12 V. Use a transistor or relay per lamp:
-
-- **Low-side (input pulled to ground):** NPN transistor (2N2222/BC547).
-  Board pin → 1 kΩ → base, emitter → ground, collector → cluster pin.
-- **High-side (input fed +12 V):** a PNP or P-channel MOSFET driven by an
-  NPN, or a relay/optocoupler module, switching +12 V to the cluster pin.
-
-If your driver turns the lamp on when the pin is LOW, set
-`INDICATOR_ACTIVE_LOW 1`.
 
 ## Firmware setup
 
@@ -381,61 +318,14 @@ shows the CAN link works. If the needles don't move, see
 
 ## Bench test without the game
 
-```
-pip install pyserial
-python tools/cluster_test.py COM5 --sweep            # needles sweep continuously
-python tools/cluster_test.py COM5 --rpm 2000 --speed 60 --coolant 90 --fuel 50
-python tools/cluster_test.py COM5 --rpm 800 --lamps  # cycle each lamp in turn
-```
+Open `tools/cluster_tester.html` in Chrome or Edge (double-click it), press
+**Connect** and pick the board's COM port. Sliders and lamp switches drive the
+gauges and lamps straight from the browser, a box sends any `#` command, and
+the board's replies show in the log. It uses Web Serial, which Firefox and
+Safari don't support. Close the Serial Monitor and SimHub first, because only
+one program can hold the port at a time.
 
-Replace `COM5` with the board's port (check Device Manager or the Arduino
-IDE). Close the Serial Monitor and SimTools first, because only one program can
-hold the port at a time.
-
-**No Python?** Open `tools/cluster_tester.html` in Chrome or Edge (double-click
-it), press **Connect** and pick the board's port. It has the same controls as the
-window version below and talks to the board straight from the browser (Web
-Serial; Firefox and Safari don't support it).
-
-Or use the Python window version, which also replaces the Serial Monitor:
-
-```
-python tools/cluster_gui.py
-```
-
-Pick the port and press **Connect**. The sliders and lamp switches stream to
-the board continuously, the buttons send common commands (`#stat`, `#watch`,
-stop scan/sweep, clear frames), the box at the bottom sends any `#` command,
-and the board's replies show in the log. It needs Python's tkinter, which comes
-with the python.org installer for Windows.
-
-## SimTools setup
-
-1. In **SimTools Game Manager**, install and patch the **American Truck
-   Simulator** game plugin. It installs the ATS telemetry SDK plugin into the
-   game's `bin\win_x64\plugins` folder.
-2. In **SimTools Game Engine → Interface Settings**, choose an interface and set:
-   - Interface type: **Serial**
-   - COM port: the board's port
-   - BitsPerSec: **115200**, Data Bits 8, Parity None, Stop Bits 1
-   - Output type: **Decimal**
-   - Interval: about 10–20 ms
-3. Set the **Interface Output** string so each value is a field letter followed
-   by the SimTools output token for that value, and end it with `;`. For example:
-
-   ```
-   R<rpm token>S<speed token>T<water temp token>A<throttle token>F<fuel token>E<engine warning token>B<battery warning token>O<oil warning token>L<left blinker token>Y<right blinker token>H<high beam token>P<parking brake token>G<gear token>;
-   ```
-
-   Replace each `<... token>` with the matching dash/telemetry output from your
-   SimTools version's output list (it lists all the values the ATS plugin
-   provides, under GameDash or the extra-output functions). You only need the
-   fields you want. Leave out any the plugin doesn't provide.
-4. Start ATS and start driving. The board treats the game as live as soon as
-   fields arrive, and parks the needles if nothing arrives for 1 s (the game
-   is paused or closed).
-
-## SimHub setup (alternative to SimTools)
+## SimHub setup
 
 The firmware doesn't care which program sends the text, so SimHub works too.
 
@@ -565,68 +455,6 @@ the cluster plug, not CAN.
 | BRAKE (parking brake) lamp | HS-CAN | `0x212` byte 4 = `0x40` | Confirmed, but only with the body bus (MS-CAN) connected; without it the lamp stays on |
 | Trip meter / odometer | HS-CAN | `0x420` byte 1 counts up with distance | About 1/8085 mile per count (`ODO_MILES_PER_COUNT`). Confirmed on a 2005 cluster: 5 minutes at 60 mph reads 5.0 miles. Also adds to the odometer. The cluster reports its odometer on MS `0x4FA` in 1/16 mile steps |
 
-## CAN frames sent
-
-The cluster sends a few frames of its own on HS-CAN (`0x046`, `0x190`, `0x430`,
-`0x433`), so the firmware never sends those IDs.
-
-All frames use 11-bit IDs: HS-CAN frames at 500 kbit/s, MS (body bus) frames at 125 kbit/s.
-
-| ID | Every | Bytes | Content |
-|---|---|---|---|
-| `0x201` | 20 ms | 0–1 | RPM × 0.96 (big-endian; 1:1 read about 4% high) |
-| | | 4–5 | Speed: km/h × 100 (big-endian) |
-| | | 6 | Throttle × 2 |
-| `0x4B0` | 20 ms | 0–7 | Four wheel speeds: km/h × 100 + 10000 (keeps the ABS lamp quiet) |
-| `0x420` | 100 ms | 0 | Coolant: °C + 40 |
-| | | 1 | Distance counter: goes up by one every `ODO_MILES_PER_COUNT` miles travelled, wrapping at `0xFF`. Drives the trip meter and odometer |
-| | | 4 | `0x02` = battery/charge lamp, `0x40` = check-engine lamp, `0x80` = check-engine flashing. Bit `0x01` is always set; bytes 2, 3, 5–7 `0x00` |
-| `0x212` | 100 ms | 4 | `0x40` = brake warning lamp (parking brake) |
-| `0x4EA` | 100 ms | 0 | `0x80` = CRUISE MAIN, `0x40` = CRUISE (sent with MAIN). Other bytes `0x00` |
-| `0x228` | 100 ms | 0, 1 | Byte 0 gear display: `1` P, `2` R, `3` N, `4` D, `0x14`–`0x64` gears 1–6, `0` none. Byte 1 `0x80` = manual-mode lamp (M instead of D), sent with a numbered gear only when `GEAR_MANUAL_LAMP` is 1 (`0x40`–`0x79` light the AT lamp instead). Sending the frame at all stands in for the transmission module, so the AT warning lamp goes out. Bytes 2–7 are `0x00` |
-| MS `0x433` | 100 ms | 3 | `0x40` = high beam lamp. Body bus only, sent when `MS_CAN_ENABLED` is on; other bytes `0x00` |
-| MS `0x460` | 100 ms | 1 | `0xFF`: stops the repeating seat belt chime |
-| | | others | `0x00`: stands in for the airbag module so the SRS lamp goes out. Body bus only, as above |
-| MS `0x265` | 20 ms | 0 | `0x20` = left arrow, `0x40` = right arrow (flashed by the firmware). Body bus only, as above |
-
-The calibration factors (`RPM_CAN_FACTOR`, `SPEED_CAN_FACTOR`,
-`SPEED_CAN_OFFSET`) and lamp bits are constants at the top of `mazda3_can.h`.
-The `0x420` lamp bits were found on a 2005 cluster. The `0x212` parking brake
-bit came from RX-8 research and works on a 2005 cluster once the body bus
-(MS-CAN) is connected; on HS-CAN alone the lamp stays on. The `0x4B0`
-wheel-speed encoding also comes from RX-8 research (the RX-8 shares much of
-its CAN matrix with the Mazda 3). Use the `#` command below to check them on
-yours.
-
-### Experimenting with frames over serial
-
-You can add extra frames at runtime without reflashing. Type these in the
-Serial Monitor (115200 baud, newline line ending), or send them with
-`tools/cluster_test.py --raw`:
-
-| Command | Effect |
-|---|---|
-| `#420 82 40 00 00 01 00 00 00` | Send this frame every 100 ms (hex). If the ID is a built-in one, the built-in frame stops until you remove the custom one. |
-| `#420` | Stop sending custom frame `0x420` |
-| `#m433 00 00 00 40 00 00 00 00` | The same, on the body bus (MS-CAN). Needs `MS_CAN_ENABLED 1`. |
-| `#-` | Remove all custom frames and stop a scan |
-| `#?` | List custom frames |
-| `#scan m` / `#scan h` | Scan every ID on MS-CAN / HS-CAN with all-`0xFF` frames, 16 IDs every 2 s (see [Finding the lamp frames](#finding-the-lamp-frames)) |
-| `#scan h 4D0` / `#scan m 4D0` | Start a scan at ID `0x4D0` and carry on up from there (`hs`/`ms` and a `0x` prefix also work) |
-| `#scan h 0 00` | Scan with every byte `0x00` instead of `0xFF` (any fill byte works; `#scan resume` keeps it). For lamps that are on until their module is heard, like AT: watch for the lamp going **out** |
-| `#scan` | Stop a scan and print the block it stopped at |
-| `#scan resume` | Carry on from the block where the last scan stopped |
-| `#sweep h 212 4` / `#sweep m 433 3` | Send that ID with every byte `0x00` except the one given (0–7), which steps through `00`–`FF`, one value every 0.4 s, printing each value. For lamps that need one particular value. Add a start value to begin part-way (`#sweep h 212 4 80`) |
-| `#sweep` | Stop a sweep and print the value it stopped at |
-| `#watch` | Toggle printing the cluster's own frames whenever their data changes (`changed HS 0x190 …`). Useful alongside `#sweep` or `#scan`, since the cluster reports some of its own state |
-| `#ohms 15` / `#ohms 0` | Hold the fuel sender stand-in at that resistance, ignoring the game, to find which value sits on F, ½ or E (then set `FUEL_SENDER_FULL/HALF/EMPTY_OHMS`). `#ohms 0` follows the game again |
-| `#stat` | Bus health per bus: frames sent, errors and frames heard, plus whether the cluster is acknowledging (see [Reaching the body bus](#reaching-the-body-bus-ms-can)) |
-
-Each command echoes the frame back (for example `  0x420 82 40 00 00 01 00 00 00`).
-If nothing comes back, check that the Serial Monitor's line ending is set to
-**Newline**. Up to 8 custom frames can be active. They're lost on reset. Once you've found a
-frame that works, add it to `mazda3_can.h` permanently.
-
 ## Known limitations
 
 See [What's mapped so far](#whats-mapped-so-far) for everything that works.
@@ -658,15 +486,7 @@ See [What's mapped so far](#whats-mapped-so-far) for everything that works.
 | `CAN init failed` repeats in the Serial Monitor | The wrong board selected in *Tools → Board* (it must be AutosportLabs ESP-CAN-X2), or `CAN_TX_PIN`/`CAN_RX_PIN` changed from 7/6 |
 | Cluster dark | No 12 V on IG1 (`1G`) or B+ (`1C`), or no ground on `1E`/`1F` |
 | Cluster lights up but needles don't move during the boot sweep | CAN-H/L swapped (`1I` is H, `1K` is L), missing termination (aim for ~60 Ω across H/L with power off), or no common ground between the board and the 12 V supply |
-| Needles work with `cluster_test.py` but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
+| Needles work with the tester page but not in game | Wrong COM port or baud in SimTools/SimHub, two programs holding the port, or the output string doesn't end with `;` |
 | Speed reads about 1.6× too high or too low | `SPEED_SCALE` doesn't match your units: `1.609344` for mph (default), `1.0` for km/h, `3.6` for m/s |
 | Tach barely moves | Raise `RPM_DISPLAY_MULTIPLIER` |
 | Tach or speedo reads a fixed ratio off | Adjust `RPM_CAN_FACTOR` or `SPEED_CAN_FACTOR` in `mazda3_can.h` |
-
-## Development
-
-Run the unit tests for the frame encoding and parser on a PC:
-
-```
-g++ -std=c++11 -Wall -Wextra -I firmware/ATS_Mazda3_Cluster test/test_logic.cpp -o test_logic && ./test_logic
-```
