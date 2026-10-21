@@ -12,8 +12,7 @@
 #endif
 
 // ---------------------------------------------------------------- Serial link
-// Must match the baud rate set on the SimTools interface (Game Engine ->
-// Interface Settings). 115200 is the fastest SimTools offers and is plenty.
+// Must match the baud rate in the SimHub serial device profile (115200).
 #define SERIAL_BAUD 115200
 
 // If no telemetry arrives for this long the game is treated as paused/closed
@@ -21,11 +20,11 @@
 #define TELEMETRY_TIMEOUT_MS 1000
 
 // Print a status line every second (handy in the Arduino Serial Monitor, but
-// turn it off once SimTools is driving the board - it doesn't need the chatter).
+// turn it off once SimHub is driving the board - it doesn't need the chatter).
 #define DEBUG_STATUS 0
 
 // Where debug/status text goes. Serial is the board's USB-C port, the same
-// port SimTools uses.
+// port SimHub uses.
 #define DEBUG_PORT Serial
 
 // ------------------------------------------------------------- HS-CAN (X1)
@@ -56,10 +55,9 @@
 #define SWEEP_DURATION_MS 1500  // each direction
 
 // ---------------------------------------------------------- Input scaling
-// physical = raw * SCALE + OFFSET, applied to every value SimTools sends.
+// physical = raw * SCALE + OFFSET, applied to every value SimHub sends.
 //
-// Defaults assume SimTools sends real units (RPM, mph, deg C, %). If your
-// output is set to a bit range instead (e.g. 8-bit = 0..255), rescale here.
+// Defaults assume SimHub sends real units (RPM, mph, deg C, %).
 // Example: 8-bit RPM output covering 0..3000 rpm -> RPM_SCALE (3000.0 / 255.0)
 //
 // Speed is expected in mph: SPEED_SCALE converts it to the km/h the cluster
@@ -72,7 +70,7 @@
 #define COOLANT_OFFSET  0.0f
 #define THROTTLE_SCALE  1.0f
 #define THROTTLE_OFFSET 0.0f
-// Fuel is expected as a percentage (0 = empty, 100 = full). If SimTools gives
+// Fuel is expected as a percentage (0 = empty, 100 = full). If SimHub gives
 // litres or gallons instead, scale by 100 / tank capacity.
 #define FUEL_SCALE      1.0f
 #define FUEL_OFFSET     0.0f
@@ -111,7 +109,7 @@
 // The parking brake lamp is sent over CAN (0x212). PIN_PARK_BRAKE is only for
 // clusters where it turns out to be hard-wired instead.
 //
-// The pins are 3.3 V. Avoid GPIO2 (LED), 3 (MCP2515 interrupt),
+// The pins are 3.3 V. Avoid GPIO2 (CAN activity LED), 3 (MCP2515 interrupt),
 // 6/7 (CAN1), 10-13 (MCP2515 SPI), 19/20 (USB), 43/44 (X4 serial) and the
 // boot pins 0, 45 and 46. GPIO 21, 47 and 48 (SV1 pins 8-10) are free.
 #define PIN_LEFT_TURN   -1
@@ -157,6 +155,13 @@
 // it down) does, because a 3.3 V pin left the bench IRLB8721 barely on. Set 0
 // if the pin drives the MOSFET gate directly.
 #define FUEL_PWM_INVERT 1
+
+// CAN activity LED: the board's data LED on GPIO2 flickers while frames go out
+// to or come in from the cluster on either bus, and stays dark when nothing
+// gets through (no cluster, wrong wiring). -1 = off.
+#define PIN_CAN_LED 2
+// How fast the LED flickers while there is traffic: it toggles this often.
+#define CAN_LED_FLICKER_MS 50
 
 // Set to 1 if your driver circuit needs the pin LOW to light the lamp.
 #define INDICATOR_ACTIVE_LOW 0

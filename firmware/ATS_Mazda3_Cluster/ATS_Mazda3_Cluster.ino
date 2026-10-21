@@ -2,7 +2,7 @@
 //  ATS_Mazda3_Cluster
 //
 //  Drives a real 2004-2009 (BK) Mazda 3 instrument cluster from American Truck
-//  Simulator telemetry. SimTools streams game data to this board over USB
+//  Simulator telemetry. SimHub streams game data to this board over USB
 //  serial; the board turns it into the CAN frames the cluster expects.
 //
 //  Hardware: Autosport Labs ESP32-CAN-X2 (HS-CAN on X1, MS-CAN on X2).
@@ -84,8 +84,26 @@ BusStats mainStats = {};
 BusStats msStats = {};
 #endif
 
+// Set by any frame sent or received on either bus; updateCanLed() turns it
+// into a flicker on the data LED.
+bool canActivity = false;
+
+void updateCanLed(unsigned long now) {
+  if (PIN_CAN_LED < 0) return;
+  static unsigned long lastToggleMs = 0;
+  static bool lit = false;
+  if (now - lastToggleMs < CAN_LED_FLICKER_MS) return;
+  lastToggleMs = now;
+  lit = canActivity ? !lit : false;
+  canActivity = false;
+  digitalWrite(PIN_CAN_LED, lit ? HIGH : LOW);
+}
+
 void recordSend(BusStats &s, byte rc) {
-  if (rc == CAN_OK) s.sent++;
+  if (rc == CAN_OK) {
+    s.sent++;
+    canActivity = true;
+  }
   else if (rc == CAN_SENDMSGTIMEOUT) s.slow++;
   else s.stuck++;
 }
@@ -193,7 +211,7 @@ void applyTelemetry() {
   cluster.speedKmh = scaled('S', SPEED_SCALE, SPEED_OFFSET);
   cluster.coolantC = scaled('T', COOLANT_SCALE, COOLANT_OFFSET);
   cluster.throttlePct = scaled('A', THROTTLE_SCALE, THROTTLE_OFFSET);
-  // Only once SimTools has sent fuel; otherwise keep the boot default rather
+  // Only once SimHub has sent fuel; otherwise keep the boot default rather
   // than dropping the gauge to empty.
   if (parser.seen('F')) cluster.fuelPct = scaled('F', FUEL_SCALE, FUEL_OFFSET);
   cluster.checkEngine = parser.value('E') >= 0.5f;
@@ -419,6 +437,7 @@ void pollReceive(Bus &bus, BusStats &s, const __FlashStringHelper *label) {
     byte buf[8];
     bus.readMsgBufID(&id, &len, buf);
     s.rxFrames++;
+    canActivity = true;
     if (len > 8) len = 8;
     int8_t slot = -1;
     for (uint8_t i = 0; i < s.rxIdCount; i++) {
@@ -453,6 +472,7 @@ void pollAllReceive() {
 #if MS_CAN_ENABLED
   pollReceive(MSCAN, msStats, F("MS 0x"));
 #endif
+  updateCanLed(millis());
 }
 
 // `#stat`: one bus's counts and a plain verdict on the wiring.
@@ -728,6 +748,10 @@ void setup() {
   initIndicator(PIN_HIGH_BEAM);
   initIndicator(PIN_PARK_BRAKE);
   initIndicator(PIN_OIL_LAMP);
+  if (PIN_CAN_LED >= 0) {
+    pinMode(PIN_CAN_LED, OUTPUT);
+    digitalWrite(PIN_CAN_LED, LOW);
+  }
 
   // Sensible "engine warm" coolant reading until the game says otherwise.
   cluster.coolantC = 90;

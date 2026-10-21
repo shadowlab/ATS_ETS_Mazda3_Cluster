@@ -1,9 +1,9 @@
 <!doctype html>
 <!--
-  Mazda 3 cluster tester: drive the cluster bridge from a browser, no Python.
+  Mazda 3 cluster tester: drive the cluster bridge from a browser, nothing to install.
   Open this file in Chrome or Edge (double-click it), press Connect and pick
   the ESP32-CAN-X2's COM port. Uses the Web Serial API, which Firefox and Safari lack.
-  Close the Arduino Serial Monitor and SimHub/SimTools first.
+  Close the Arduino Serial Monitor and SimHub first.
 -->
 <html lang="en">
 <head>
@@ -123,7 +123,7 @@
 </main>
 
 <script>
-// Same text protocol as tools/cluster_test.py and SimHub/SimTools.
+// Same text protocol as SimHub.
 const GAUGES = [
   { key: "R", label: "RPM", min: 0, max: 8000, value: 800, digits: 0 },
   { key: "S", label: "Speed (mph)", min: 0, max: 140, value: 0, digits: 1 },
@@ -266,7 +266,7 @@ async function connect() {
   heard = false;
   readLoop(port);
   // Opening the port can restart the board, so wait for the sketch's
-  // "CAN ready" (or a few seconds) before streaming. Same idea as the 4 s wait in cluster_test.py.
+  // "CAN ready" (or a few seconds) before streaming.
   bootTimer = setTimeout(startStreaming, BOOT_WAIT_MS);
   quietTimer = setTimeout(() => {
     if (port && !heard) {
